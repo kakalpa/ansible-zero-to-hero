@@ -1,0 +1,6 @@
+from .level1 import LEVEL1_EXERCISES
+from .level2 import LEVEL2_EXERCISES
+from .level3 import LEVEL3_EXERCISES
+from .level4 import LEVEL4_EXERCISES
+
+__all__ = ["LEVEL1_EXERCISES", "LEVEL2_EXERCISES", "LEVEL3_EXERCISES", "LEVEL4_EXERCISES"]

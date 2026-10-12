@@ -1,0 +1,21 @@
+" Enhanced YAML configuration for Ansible
+syntax on
+filetype plugin indent on
+
+set number
+set cursorline
+set ruler
+set showcmd
+set wildmenu
+
+" YAML indentation rules (2 spaces, no hard tabs)
+autocmd FileType yaml,yml setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0#
+autocmd FileType yaml,yml setlocal autoindent smartindent
+autocmd FileType yaml,yml setlocal foldmethod=indent nofoldenable
+
+" Highlight trailing whitespace
+highlight ExtraWhitespace ctermbg=red guibg=red
+match ExtraWhitespace /\s\+$/
+
+" Ansible playbook filetype detection
+autocmd BufNewFile,BufRead *.yml,*.yaml setfiletype yaml

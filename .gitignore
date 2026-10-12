@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local Environment & Secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# SSH keys & certificates
+docker/keys/id_ed25519
+docker/keys/id_ed25519.pub
+*.key
+*.pem
+
+# Learner authored playbooks in workspace runtime
+workspace/*.yml
+workspace/*.yaml
+workspace/*.retry
+!workspace/README.md
+
+# Backups & Exports
+*.tar.gz
+*.bak
+*.swp
+*.swo
+*~
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Internal design audit artifacts
+.impeccable/

@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+# ==============================================================================
+#  Ansible Zero-to-Hero / SRE Incident Simulator — Lab Management CLI
+# ==============================================================================
+set -e
+
+# Terminal colors
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+# Source environment variables if .env exists
+if [ -f "$ROOT_DIR/.env" ]; then
+    # shellcheck disable=SC1091
+    source "$ROOT_DIR/.env"
+fi
+
+PORT="${PORTAL_PORT:-8080}"
+BIND="${BIND_HOST:-127.0.0.1}"
+
+# Detect Docker Compose command (v2 plugin vs v1)
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE="docker-compose"
+else
+    echo -e "${RED}[✗] Error: Docker Compose is not installed or not in PATH.${NC}"
+    echo "    Please install Docker Desktop or docker-compose-plugin."
+    exit 1
+fi
+
+banner() {
+    echo -e "${CYAN}${BOLD}"
+    echo "  ╔═══════════════════════════════════════════════════════════════╗"
+    echo "  ║        ANSIBLE ZERO-TO-HERO & SRE INCIDENT SIMULATOR          ║"
+    echo "  ║         Interactive 6-Node Heterogeneous Fleet Lab            ║"
+    echo "  ╚═══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+cmd_start() {
+    banner
+    echo -e "${CYAN}[*] Starting Ansible Zero-to-Hero Cluster...${NC}"
+
+    # Ensure workspace directory exists
+    mkdir -p "$ROOT_DIR/workspace"
+
+    # Check if port is already in use
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z "$BIND" "$PORT" 2>/dev/null; then
+            echo -e "${YELLOW}[!] Warning: Port $BIND:$PORT is already in use. If the lab is already running, try './lab status'.${NC}"
+        fi
+    fi
+
+    # Start cluster
+    $COMPOSE up -d
+
+    echo -e "${GREEN}[✔] Cluster started successfully!${NC}"
+    echo ""
+    echo -e "    ${BOLD}Portal URL:${NC}    ${CYAN}http://$BIND:$PORT${NC}"
+    echo -e "    ${BOLD}Playbooks:${NC}     $ROOT_DIR/workspace/"
+    echo -e "    ${BOLD}Fleet Nodes:${NC}   Ubuntu 22.04, Debian 12, Debian 13,"
+    echo -e "                   AlmaLinux 9.4, Rocky Linux 9.4, Alpine 3.22"
+    echo ""
+    echo -e "    ${BOLD}Quick Commands:${NC}"
+    echo -e "      ${GREEN}./lab status${NC}   Check cluster health & resource usage"
+    echo -e "      ${GREEN}./lab logs${NC}     Stream live portal & terminal logs"
+    echo -e "      ${GREEN}./lab reset${NC}    Wipe cluster back to pristine state"
+    echo -e "      ${GREEN}./lab stop${NC}     Safely shut down the lab"
+    echo ""
+}
+
+cmd_stop() {
+    echo -e "${YELLOW}[*] Stopping Ansible Cluster...${NC}"
+    $COMPOSE down
+    echo -e "${GREEN}[✔] Cluster stopped. Your playbooks in ./workspace remain safe.${NC}"
+}
+
+cmd_restart() {
+    cmd_stop
+    echo ""
+    cmd_start
+}
+
+cmd_status() {
+    banner
+    echo -e "${BOLD}Current Fleet Status:${NC}"
+    echo "------------------------------------------------------------------"
+    $COMPOSE ps
+    echo ""
+    echo -e "${BOLD}Resource Consumption:${NC}"
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" $(docker ps -q --filter "name=ansible|node") 2>/dev/null || true
+    echo ""
+    echo -e "Web Portal: ${CYAN}http://$BIND:$PORT${NC}"
+}
+
+cmd_logs() {
+    echo -e "${CYAN}[*] Following portal logs (Press Ctrl+C to exit)...${NC}"
+    $COMPOSE logs -f portal
+}
+
+cmd_reset() {
+    echo -e "${YELLOW}[*] Initiating pristine cluster reset across all 6 nodes...${NC}"
+    if curl -s -f "http://$BIND:$PORT/api/cluster/rollback" -X POST >/dev/null 2>&1; then
+        echo -e "${GREEN}[✔] Nodes reset to baseline via portal API.${NC}"
+    else
+        echo -e "${CYAN}[*] Restarting containers directly via compose...${NC}"
+        $COMPOSE restart node1-ubuntu node2-debian node3-debian13 node4-almalinux node5-rocky node6-alpine
+        echo -e "${GREEN}[✔] All 6 container nodes restarted to clean baseline state.${NC}"
+    fi
+}
+
+cmd_doctor() {
+    banner
+    echo -e "${BOLD}Running System Pre-Flight Diagnostic (Doctor)...${NC}\n"
+    local ERRORS=0
+
+    # 1. Check Docker daemon
+    if docker info >/dev/null 2>&1; then
+        echo -e "  ${GREEN}[✔]${NC} Docker daemon is active and responding."
+    else
+        echo -e "  ${RED}[✗]${NC} Docker daemon is not running. Please start Docker."
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # 2. Check Architecture
+    ARCH=$(uname -m)
+    echo -e "  ${GREEN}[✔]${NC} CPU Architecture: ${CYAN}$ARCH${NC} (Supported: x86_64, aarch64, arm64)"
+
+    # 3. Check Host Memory
+    if command -v free >/dev/null 2>&1; then
+        MEM_MB=$(free -m | awk '/^Mem:/{print $2}')
+        if [ "$MEM_MB" -ge 2000 ]; then
+            echo -e "  ${GREEN}[✔]${NC} Host Memory: ${MEM_MB}MB (>= 2048MB required)"
+        else
+            echo -e "  ${YELLOW}[!]${NC} Host Memory: ${MEM_MB}MB (< 2048MB recommended, cluster might be tight)"
+        fi
+    elif [ "$(uname)" = "Darwin" ]; then
+        echo -e "  ${GREEN}[✔]${NC} Host OS: macOS (Ensure Docker Desktop has >= 2.5GB RAM allocated)"
+    fi
+
+    # 4. Check Port Availability
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z "$BIND" "$PORT" 2>/dev/null; then
+            echo -e "  ${YELLOW}[!]${NC} Port $BIND:$PORT is currently in use."
+        else
+            echo -e "  ${GREEN}[✔]${NC} Port $BIND:$PORT is available."
+        fi
+    fi
+
+    # 5. Check Disk Space
+    FREE_GB=$(df -k . | awk 'NR==2 {print int($4/1024/1024)}')
+    if [ "$FREE_GB" -ge 3 ]; then
+        echo -e "  ${GREEN}[✔]${NC} Available Disk Space: ${FREE_GB}GB (>= 3GB required)"
+    else
+        echo -e "  ${YELLOW}[!]${NC} Available Disk Space: ${FREE_GB}GB (Low disk space)"
+    fi
+
+    echo ""
+    if [ "$ERRORS" -eq 0 ]; then
+        echo -e "${GREEN}${BOLD}Everything looks great! Ready to launch: ./lab start${NC}"
+    else
+        echo -e "${RED}${BOLD}Diagnostic found $ERRORS issue(s). Please resolve them before starting.${NC}"
+    fi
+}
+
+cmd_export() {
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    ARCHIVE_NAME="ansible_lab_backup_${TIMESTAMP}.tar.gz"
+    echo -e "${CYAN}[*] Exporting authored playbooks and workspace...${NC}"
+    tar -czf "$ARCHIVE_NAME" workspace/ 2>/dev/null || true
+    echo -e "${GREEN}[✔] Export complete: ${BOLD}${ARCHIVE_NAME}${NC}"
+    echo "    Contains all your authored playbooks from ./workspace."
+}
+
+cmd_update() {
+    echo -e "${CYAN}[*] Pulling latest container images...${NC}"
+    $COMPOSE pull || true
+    echo -e "${GREEN}[✔] Images updated.${NC}"
+}
+
+case "$1" in
+    start|up)
+        cmd_start
+        ;;
+    stop|down)
+        cmd_stop
+        ;;
+    restart)
+        cmd_restart
+        ;;
+    status|ps)
+        cmd_status
+        ;;
+    logs)
+        cmd_logs
+        ;;
+    reset)
+        cmd_reset
+        ;;
+    doctor)
+        cmd_doctor
+        ;;
+    export)
+        cmd_export
+        ;;
+    update)
+        cmd_update
+        ;;
+    help|--help|-h|"")
+        banner
+        echo -e "${BOLD}Usage:${NC} ./lab [command]"
+        echo ""
+        echo -e "${BOLD}Available Commands:${NC}"
+        echo -e "  ${GREEN}start${NC}     Launch the 6-node Ansible lab cluster and web portal"
+        echo -e "  ${GREEN}stop${NC}      Shut down the lab containers safely"
+        echo -e "  ${GREEN}restart${NC}   Restart all lab services"
+        echo -e "  ${GREEN}status${NC}    Display running containers, IP addresses, and memory stats"
+        echo -e "  ${GREEN}reset${NC}     Perform a clean factory reset across all 6 cluster nodes"
+        echo -e "  ${GREEN}logs${NC}      Follow real-time portal web & terminal output"
+        echo -e "  ${GREEN}doctor${NC}    Validate system requirements (Docker, ports, memory, arch)"
+        echo -e "  ${GREEN}export${NC}    Archive your authored playbooks to a portable .tar.gz bundle"
+        echo -e "  ${GREEN}update${NC}    Pull latest image updates"
+        echo -e "  ${GREEN}help${NC}      Show this help menu"
+        echo ""
+        ;;
+    *)
+        echo -e "${RED}[✗] Unknown command: $1${NC}"
+        echo "Run './lab help' for a list of available commands."
+        exit 1
+        ;;
+esac

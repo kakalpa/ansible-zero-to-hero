@@ -1,0 +1,16 @@
+---
+- name: Complince banner
+  hosts: cluster
+  become: true
+  gather_facts: true
+  tasks:
+  - name: Write Content to file
+    ansible.builtin.copy:
+      dest: /etc/compliance_banner.txt
+      content: |
+        ==================================================
+        Authorized ACCESS ONLY - NOVATECH ENTERPRISE
+        node {{ ansible_facts['hostname'] }}
+        all activities are monitored.
+        =================================================
+      mode: '0644'

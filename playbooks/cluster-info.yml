@@ -1,0 +1,14 @@
+---
+- name: Inspect Cluster Nodes
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Display Node Information
+      ansible.builtin.debug:
+        msg:
+          - "Hostname: {{ ansible_hostname }}"
+          - "OS Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "OS Family: {{ ansible_os_family }}"
+          - "Package Manager: {{ ansible_pkg_mgr }}"
+          - "Total Memory: {{ (ansible_memtotal_mb | default(0)) }} MB"
+          - "Kernel: {{ ansible_kernel }}"

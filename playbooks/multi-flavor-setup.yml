@@ -1,0 +1,50 @@
+---
+- name: Multi-flavor package and system setup
+  hosts: cluster
+  gather_facts: true
+  tasks:
+    - name: Update apt cache on Debian and Ubuntu
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Update apk cache on Alpine
+      community.general.apk:
+        update_cache: yes
+      when: ansible_facts['os_family'] == 'Alpine'
+
+    - name: Enable EPEL repository on Enterprise Linux (AlmaLinux & Rocky)
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install common packages (curl, htop) across all distributions
+      ansible.builtin.package:
+        name:
+          - curl
+          - htop
+        state: present
+
+    - name: Configure custom MOTD banner on every node
+      ansible.builtin.copy:
+        dest: /etc/motd
+        content: |
+          ==================================================
+           Managed by Ansible Controller (Victous)
+           Host:     {{ inventory_hostname }}
+           OS:       {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+           Family:   {{ ansible_facts['os_family'] }} (Pkg: {{ ansible_facts['pkg_mgr'] }})
+          ==================================================
+        mode: '0644'
+
+    - name: Verify MOTD content on target nodes
+      ansible.builtin.command:
+        cmd: cat /etc/motd
+      register: motd_output
+      changed_when: false
+
+    - name: Display MOTD verification
+      ansible.builtin.debug:
+        msg: "{{ motd_output.stdout_lines }}"

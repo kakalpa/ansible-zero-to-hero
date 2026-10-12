@@ -1,0 +1,10 @@
+# Enhanced YAML configuration for Ansible
+set tabsize 2
+set tabstospaces
+set autoindent
+set linenumbers
+set constantshow
+set smarthome
+set smooth
+
+include "/usr/share/nano/yaml.nanorc"

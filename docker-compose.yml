@@ -1,0 +1,171 @@
+services:
+  portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}portal:${IMAGE_TAG:-latest}
+    container_name: ansible-portal
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:${PORTAL_PORT:-8080}:8080"
+    environment:
+      - PORTAL_PORT=${PORTAL_PORT:-8080}
+      - DOCKER_HOST=${DOCKER_HOST:-}
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - ./workspace:/ansible/playbooks
+      - ./custom_scenarios:/ansible/custom_scenarios
+      - cluster-keys:/shared-keys
+      - user-data:/ansible/user_data
+    networks:
+      ansible-net:
+        aliases:
+          - portal
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - node1-ubuntu
+      - node2-debian
+      - node3-debian13
+      - node4-almalinux
+      - node5-rocky
+      - node6-alpine
+
+  node1-ubuntu:
+    build:
+      context: .
+      dockerfile: docker/node-ubuntu.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node1-ubuntu:${IMAGE_TAG:-latest}
+    container_name: node1-ubuntu
+    hostname: node1-ubuntu
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node1-ubuntu
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node2-debian:
+    build:
+      context: .
+      dockerfile: docker/node-debian12.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node2-debian:${IMAGE_TAG:-latest}
+    container_name: node2-debian
+    hostname: node2-debian
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node2-debian
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node3-debian13:
+    build:
+      context: .
+      dockerfile: docker/node-debian13.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node3-debian13:${IMAGE_TAG:-latest}
+    container_name: node3-debian13
+    hostname: node3-debian13
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node3-debian13
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node4-almalinux:
+    build:
+      context: .
+      dockerfile: docker/node-almalinux.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node4-almalinux:${IMAGE_TAG:-latest}
+    container_name: node4-almalinux
+    hostname: node4-almalinux
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node4-almalinux
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node5-rocky:
+    build:
+      context: .
+      dockerfile: docker/node-rocky.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node5-rocky:${IMAGE_TAG:-latest}
+    container_name: node5-rocky
+    hostname: node5-rocky
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node5-rocky
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node6-alpine:
+    build:
+      context: .
+      dockerfile: docker/node-alpine.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node6-alpine:${IMAGE_TAG:-latest}
+    container_name: node6-alpine
+    hostname: node6-alpine
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node6-alpine
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  ansible-net:
+    driver: bridge
+
+volumes:
+  cluster-keys:
+  user-data:

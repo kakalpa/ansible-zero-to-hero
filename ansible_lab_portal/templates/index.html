@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ansible Interactive Lab — Real Cluster Academy</title>
+  <link rel="stylesheet" href="/static/xterm.css">
+  <link rel="stylesheet" href="/static/codemirror/codemirror.min.css">
+  <link rel="stylesheet" href="/static/codemirror/dracula.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/xterm.js"></script>
+  <script src="/static/xterm-addon-fit.js"></script>
+  <script src="/static/codemirror/codemirror.min.js"></script>
+  <script src="/static/codemirror/yaml.min.js"></script>
+  <script src="/static/codemirror/shell.min.js"></script>
+  <script src="/static/codemirror/closebrackets.min.js"></script>
+</head>
+<body>
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-brand-wrap">
+      <button id="btn-toggle-sidebar" class="btn-icon-subtle" title="Toggle Lessons Sidebar" aria-label="Toggle Lessons Sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div class="brand-identity">
+        <span class="brand-logo-badge" aria-hidden="true">A</span>
+        <div class="brand-text">
+          <h1 class="brand-title">Ansible Lab</h1>
+          <span class="brand-tagline">Interactive Fleet Academy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Active Lesson Pill -->
+    <div class="header-center-pill">
+      <span class="lesson-phase" id="exercise-breadcrumb">Level 1</span>
+      <span class="divider">/</span>
+      <span class="lesson-num-title" id="exercise-title-pill">Lesson 1.1</span>
+    </div>
+
+    <!-- Learning Mode Switcher (Guided vs Challenge-Only) -->
+    <div class="learning-mode-switcher" id="learning-mode-switcher" role="radiogroup" aria-label="Learning Mode">
+      <button class="mode-pill active" id="mode-guided" data-mode="guided" role="radio" aria-checked="true" title="Guided Mode: Concept & Syntax Primer first, then Challenge (Alt+M)">
+        <span class="mode-icon">🎓</span>
+        <span class="mode-label">Guided</span>
+      </button>
+      <button class="mode-pill" id="mode-challenge" data-mode="challenge" role="radio" aria-checked="false" title="Challenge Mode: Direct Mission Challenge (+25% Bonus XP) (Alt+M)">
+        <span class="mode-icon">⚡</span>
+        <span class="mode-label">Challenge</span>
+      </button>
+    </div>
+
+    <!-- Gamification HUD -->
+    <div class="gamify-hud">
+      <div class="hud-pill hud-rank" id="hud-rank-pill" title="Current Automation Rank">
+        <span class="rank-icon" id="hud-rank-icon">🔰</span>
+        <span class="rank-name" id="hud-rank-name">Novice Sysadmin</span>
+      </div>
+      <div class="hud-pill hud-xp" id="hud-xp-pill" title="Total Experience Points">
+        <span class="xp-icon">⚡</span>
+        <span class="xp-amount" id="hud-xp-amount">0 XP</span>
+      </div>
+      <div class="hud-pill hud-streak" id="hud-streak-pill" title="Consecutive Solved Streak">
+        <span class="streak-icon">🔥</span>
+        <span class="streak-count" id="hud-streak-count">0</span>
+      </div>
+      <div class="hud-pill hud-timer" id="hud-timer-pill" style="display: none;" title="Incident Remediation Timer (MTTR)">
+        <span class="timer-icon">⏱️</span>
+        <span class="timer-label">MTTR:</span>
+        <span class="timer-val" id="hud-timer-val">00:00</span>
+      </div>
+      <button class="hud-pill hud-badges-btn" id="btn-open-badges" title="View SRE Achievements & Badges Shelf">
+        <span class="badge-trophy-icon">🏆</span>
+        <span class="badge-count-text" id="hud-badge-count">0/9 Badges</span>
+      </button>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="header-actions">
+      <!-- Procedural Web Audio FX Toggle -->
+      <button id="btn-toggle-sound" class="btn-icon-subtle sound-toggle-btn" title="Toggle Sound FX (Currently Enabled)" aria-label="Toggle Sound FX">
+        <span id="sound-icon">🔊</span>
+      </button>
+
+      <!-- Export Lab Repo Portfolio -->
+      <button id="btn-export-repo" class="btn btn-secondary btn-sm" title="Export your authored playbooks, configs & portfolio README into a ZIP archive">
+        <span class="btn-icon">📦</span>
+        <span>Export Repo</span>
+      </button>
+
+      <!-- Live Cluster Status Pill (Opens detailed cluster modal on click) -->
+      <button id="btn-open-settings" class="cluster-pill" aria-haspopup="dialog" title="View 6-Node Fleet Details">
+        <span class="status-dot dot-online" id="global-cluster-dot"></span>
+        <span id="global-cluster-status">6 Nodes Online</span>
+      </button>
+
+      <button id="btn-reset-exercise" class="btn btn-secondary btn-sm" title="Reset and re-seed this scenario on target nodes (Ctrl+Shift+R)">
+        <span class="btn-icon">↺</span>
+        <span>Reset Lab</span>
+        <kbd class="kbd-hint">Ctrl+⇧+R</kbd>
+      </button>
+
+      <button id="btn-validate-exercise" class="btn btn-primary btn-sm" title="Validate your solution against live cluster (Ctrl+Enter)">
+        <span class="btn-icon">▶</span>
+        <span>Check Solution</span>
+        <kbd class="kbd-hint">Ctrl+↵</kbd>
+      </button>
+
+      <button id="btn-next-exercise" class="btn btn-success btn-sm" style="display: none;" title="Advance to the next lesson">
+        <span>Next Lesson →</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-layout" id="app-layout">
+    <!-- Collapsible Curriculum Sidebar -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-track-info">
+        <div class="track-header">
+          <span class="track-name">Zero to Hero Track</span>
+          <span class="track-progress" id="user-progress-text">0/10 Completed</span>
+        </div>
+        <div class="progress-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="user-progress-aria">
+          <div class="progress-bar-fill" id="user-progress-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <nav class="curriculum-nav" id="curriculum-list" aria-label="Curriculum Lessons">
+        <div class="nav-loading">Loading lessons...</div>
+      </nav>
+    </aside>
+
+    <!-- Main Learning & Practice Workspace -->
+    <main class="main-content">
+      <div class="workspace-grid" id="workspace-grid">
+        
+        <!-- Left Column: The Lesson Guide (Distraction-Free Editorial Layout) -->
+        <section class="lesson-panel" id="instruction-panel">
+          <div class="lesson-scroll-wrap">
+            
+            <!-- Lesson Header & Metadata -->
+            <div class="lesson-header-group">
+              <div class="lesson-meta-bar">
+                <span class="lesson-badge-sub" id="exercise-ticket">Lesson 1</span>
+                <span class="lesson-target-chip" id="scen-target-chip">Targets: all</span>
+                <div class="header-tags" id="exercise-tags"></div>
+              </div>
+              <h2 class="lesson-heading" id="exercise-title">Loading Lesson...</h2>
+            </div>
+
+            <!-- Two-Stage Lesson Stepper Navigation -->
+            <div class="lesson-step-nav" id="lesson-step-nav">
+              <button class="step-nav-btn active" id="btn-step-primer" data-step="primer" title="Review concept and syntax blueprint (Ctrl+←)">
+                <span class="step-badge">1</span>
+                <span class="step-label">Concept & Syntax</span>
+              </button>
+              <span class="step-connector">→</span>
+              <button class="step-nav-btn" id="btn-step-challenge" data-step="challenge" title="Execute mission against the live cluster (Ctrl+→)">
+                <span class="step-badge">2</span>
+                <span class="step-label">Mission Challenge</span>
+              </button>
+            </div>
+
+            <!-- STAGE 1: Concept & Syntax Primer -->
+            <div class="step-pane active" id="step-pane-primer">
+              <div class="content-card primer-concept-card">
+                <div class="primer-section-header">
+                  <span class="primer-icon">📖</span>
+                  <h3 class="card-section-title">The Operational Concept</h3>
+                </div>
+                <div class="markdown-body" id="primer-concept-body">
+                  <!-- Concept explanation populated dynamically -->
+                </div>
+              </div>
+
+              <div class="content-card primer-syntax-card">
+                <div class="primer-section-header">
+                  <div class="primer-title-group">
+                    <span class="primer-icon">🧩</span>
+                    <h3 class="card-section-title">Syntax Blueprint</h3>
+                  </div>
+                  <div class="primer-card-actions">
+                    <button class="btn btn-secondary btn-xs" id="btn-copy-blueprint" title="Copy syntax snippet">
+                      <span>📋 Copy</span>
+                    </button>
+                    <button class="btn btn-primary btn-xs" id="btn-insert-blueprint" title="Insert blueprint to terminal or editor">
+                      <span id="btn-insert-blueprint-label">💻 Insert</span>
+                    </button>
+                  </div>
+                </div>
+                <pre class="code-block primer-code-block" id="primer-code-view"><code></code></pre>
+                <div class="syntax-breakdown-list" id="primer-syntax-breakdown">
+                  <!-- Syntax breakdown elements populated dynamically -->
+                </div>
+              </div>
+
+              <div class="primer-tip-card" id="primer-tip-card" style="display: none;">
+                <span class="tip-icon">💡</span>
+                <div class="tip-body" id="primer-tip-body"></div>
+              </div>
+
+              <div class="primer-action-bar">
+                <button class="btn btn-primary btn-block btn-advance-challenge" id="btn-advance-challenge" title="Advance to Live Cluster Mission (Ctrl+→)">
+                  <span>Ready for Challenge →</span>
+                  <kbd class="kbd-hint">Ctrl+→</kbd>
+                </button>
+              </div>
+            </div>
+
+            <!-- STAGE 2: Mission Challenge -->
+            <div class="step-pane" id="step-pane-challenge" style="display: none;">
+              <!-- Scenario Narrative / Briefing -->
+              <div class="content-card">
+                <h3 class="card-section-title">The Challenge</h3>
+                <div class="markdown-body" id="objective-content">
+                  Loading briefing...
+                </div>
+              </div>
+
+              <!-- Actionable Objectives Checklist -->
+              <div class="content-card">
+                <div class="checklist-header-wrap">
+                  <h3 class="card-section-title">Your Goals</h3>
+                  <span class="checklist-hint">Tick tasks as you finish</span>
+                </div>
+                <ul class="interactive-checklist" id="tasks-checklist"></ul>
+              </div>
+
+              <!-- Progressive Hints & Solution Reveal -->
+              <details class="learn-accordion" id="accordion-hints">
+                <summary class="accordion-summary">
+                  <span class="summary-title">💡 Hints & Verified Solution</span>
+                  <span class="summary-badge penalty-badge" id="hints-xp-badge">-10 XP per hint</span>
+                  <span class="accordion-chevron" aria-hidden="true">▾</span>
+                </summary>
+                <div class="accordion-body">
+                  <div class="hints-accordion" id="hints-container"></div>
+                  <div class="solution-reveal-wrap">
+                    <div class="solution-prompt">
+                      <span>Stuck on syntax? View the verified solution:</span>
+                      <button class="btn btn-secondary btn-sm" id="btn-reveal-solution">Reveal Solution (-25 XP)</button>
+                    </div>
+                    <div id="solution-wrapper" style="display: none; margin-top: 12px;">
+                      <div class="solution-btn-bar">
+                        <button class="btn btn-secondary btn-sm" id="btn-copy-solution">📋 Copy Command</button>
+                        <button class="btn btn-primary btn-sm" id="btn-paste-terminal">💻 Insert to Terminal</button>
+                      </div>
+                      <pre class="code-block" id="solution-code-view"><code></code></pre>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Live Target State Peek -->
+              <details class="learn-accordion inspect-accordion" id="accordion-target-state">
+                <summary class="accordion-summary">
+                  <div class="inspect-title-wrap">
+                    <span class="summary-title">🔍 Target Node State</span>
+                    <span class="inspect-subtitle">Check remote files and state over SSH</span>
+                  </div>
+                  <span class="accordion-chevron" aria-hidden="true">▾</span>
+                </summary>
+                <div class="accordion-body">
+                  <div class="inspect-body-actions">
+                    <span class="inspect-cmd-hint" id="inspect-cmd-label">SSH command: uname -a</span>
+                    <button class="btn btn-secondary btn-sm" id="btn-peek-node" title="Inspect target nodes over SSH (Alt+I)">
+                      <span>🔍 Run Node Inspect</span>
+                      <kbd class="kbd-hint">Alt+I</kbd>
+                    </button>
+                  </div>
+                  <pre class="inspect-output" id="inspect-output">Click 'Run Node Inspect' to query live target state.</pre>
+                </div>
+              </details>
+
+              <!-- Quick Link Back to Primer -->
+              <div class="challenge-footer-ref">
+                <button class="btn-text-subtle" id="btn-back-to-primer" title="Review concept and syntax primer (Ctrl+←)">
+                  <span>← Review Concept & Syntax Blueprint</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Draggable Workspace Resizer Divider -->
+        <div class="workspace-resizer" id="workspace-resizer" role="separator" aria-orientation="vertical" tabindex="0" title="Drag to adjust split (Double-click for 50/50)"></div>
+
+        <!-- Right Column: Interactive Terminal & Results Playground -->
+        <section class="playground-panel" id="execution-panel">
+          <div class="workspace-tab-bar">
+            <div class="tab-buttons">
+              <button class="tab-btn active" id="tab-btn-terminal" data-tab="terminal" title="Interactive Terminal Full View">
+                <span class="tab-dot"></span>
+                <span>Terminal</span>
+              </button>
+              <button class="tab-btn" id="tab-btn-editor" data-tab="editor" title="In-Browser Playbook Editor Full View">
+                <span>📝 Editor</span>
+              </button>
+              <button class="tab-btn" id="tab-btn-split" data-tab="split" title="Dual Workspace (Editor + Terminal)">
+                <span>◫ Split View</span>
+              </button>
+              <button class="tab-btn" id="tab-btn-results" data-tab="results" title="Validation & SRE Coaching Output">
+                <span>Validation Output</span>
+                <span class="tab-status-chip ready" id="val-badge-chip">Ready</span>
+              </button>
+            </div>
+            <div class="tab-bar-actions">
+              <button class="btn-topology-toggle" id="btn-toggle-topology" title="Toggle Live Fleet Topology HUD (Alt+T)" aria-expanded="false">
+                <span class="fleet-pulse-dot"></span>
+                <span class="topology-toggle-text">Fleet Topology</span>
+                <span class="topology-toggle-chevron" id="topology-chevron">▾</span>
+              </button>
+              <button class="btn-icon-subtle" id="btn-maximize-term" title="Maximize / Restore Playground">
+                <span id="max-term-icon">⛶</span>
+              </button>
+              <span class="shell-ready-indicator" id="terminal-status">
+                <span class="status-dot dot-online"></span> Shell Connected
+              </span>
+            </div>
+          </div>
+
+          <!-- Playbook Editor View Surface -->
+          <div class="playground-view" id="view-editor" style="display: none;">
+            <div class="editor-action-bar">
+              <div class="editor-file-group">
+                <div class="editor-file-badge" id="editor-file-badge">
+                  <span class="editor-file-icon">📄</span>
+                  <span class="editor-file-name" id="editor-active-filename">playbook.yml</span>
+                </div>
+                <span class="editor-file-tag">Lesson Target File</span>
+              </div>
+              <div class="editor-controls-group">
+                <span class="editor-save-indicator" id="editor-save-indicator">✓ Synced</span>
+                <button class="btn btn-secondary btn-sm" id="btn-editor-save" title="Save changes (Ctrl+S)">
+                  <span>💾 Save</span>
+                  <kbd class="kbd-hint">Ctrl+S</kbd>
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-editor-revert" title="Revert editor to clean template">
+                  <span>↺ Revert</span>
+                </button>
+                <button class="btn btn-primary btn-sm" id="btn-editor-run" title="Execute this playbook in terminal (Ctrl+Enter)">
+                  <span class="btn-icon">▶</span>
+                  <span>Run Playbook</span>
+                  <kbd class="kbd-hint">Ctrl+↵</kbd>
+                </button>
+              </div>
+            </div>
+            <div class="codemirror-wrapper" id="codemirror-wrapper">
+              <textarea id="playbook-editor-textarea"></textarea>
+            </div>
+          </div>
+
+          <!-- Horizontal Split Pane Resizer Divider -->
+          <div class="split-pane-resizer" id="split-pane-resizer" style="display: none;" role="separator" aria-orientation="horizontal" title="Drag to adjust Editor / Terminal split"></div>
+
+          <!-- Terminal View Surface -->
+          <div class="playground-view active" id="view-terminal">
+            <!-- Live Fleet Topology HUD Bar (Collapsible, hidden by default) -->
+            <div class="fleet-hud" id="fleet-hud" style="display: none;">
+              <div class="fleet-hud-top">
+                <div class="fleet-hud-title-wrap">
+                  <span class="fleet-pulse-dot"></span>
+                  <span class="fleet-hud-heading">LIVE FLEET TOPOLOGY</span>
+                  <span class="fleet-hud-subtitle" id="fleet-hud-summary">6 Nodes Online &bull; Telemetry Active</span>
+                </div>
+                <div class="fleet-hud-meta">
+                  <span class="fleet-sse-badge" id="fleet-sse-badge">⚡ Live SSE</span>
+                  <button class="btn-hud-close" id="btn-close-hud" title="Hide Fleet Topology (Alt+T)" aria-label="Close Topology">✕</button>
+                </div>
+              </div>
+              <div class="fleet-microgrid" id="fleet-microgrid" role="region" aria-label="Fleet Cluster Nodes">
+                <!-- Dynamically populated from SSE stream -->
+              </div>
+            </div>
+
+            <div id="xterm-container"></div>
+          </div>
+
+          <!-- Results & Diagnostics View Surface -->
+          <div class="playground-view" id="view-results" style="display: none;">
+            <div class="results-container">
+              <div class="results-header">
+                <div class="results-status-summary" id="val-details">
+                  Run <strong>Check Solution</strong> to test your Ansible playbooks against the cluster.
+                </div>
+                <button class="btn btn-success btn-sm" id="btn-next-lesson-results" style="display: none;" title="Advance to the next lesson">
+                  <span>Next Lesson →</span>
+                </button>
+              </div>
+              <pre class="results-log-body" id="terminal-output"><span class="terminal-placeholder">Ready to execute against the 6-node cluster.</span></pre>
+            </div>
+          </div>
+
+          <!-- Floating Result Toast when in Terminal Tab -->
+          <div class="result-floating-toast" id="result-floating-toast" style="display: none;">
+            <div class="toast-content">
+              <span class="toast-icon" id="toast-icon">✓</span>
+              <span class="toast-msg" id="toast-msg">All tests passed!</span>
+            </div>
+            <div class="toast-actions">
+              <button class="toast-btn" id="btn-toast-view-results">View Log →</button>
+              <button class="toast-btn toast-btn-primary" id="btn-toast-next-lesson" style="display: none;">Next Lesson →</button>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Cluster Fleet Modal (Clean, on-demand dialog) -->
+  <div class="modal-overlay" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="modal-settings-title">Cluster Fleet Overview</h3>
+          <span class="modal-subtitle">6 Heterogeneous Linux Nodes in Docker Network</span>
+        </div>
+        <button class="modal-close" id="btn-close-settings" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-scroll-wrapper">
+          <table class="cluster-table">
+            <thead>
+              <tr>
+                <th>Node Name</th>
+                <th>Distribution</th>
+                <th>Status</th>
+                <th>Ping</th>
+                <th>Memory</th>
+                <th>Disk</th>
+              </tr>
+            </thead>
+            <tbody id="cluster-table-body">
+              <tr><td colspan="6">Loading cluster telemetry...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="cluster-actions-card">
+          <div class="actions-card-text">
+            <h4>Global Fleet Baseline Reset</h4>
+            <p>Restart all 6 containers and restore all files to pristine clean baseline.</p>
+          </div>
+          <button class="btn btn-danger btn-sm" id="btn-full-rollback">
+            Reset Entire Cluster
+          </button>
+        </div>
+        <div id="rollback-status" class="rollback-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SRE Achievements & Badges Shelf Modal -->
+  <div class="modal-overlay" id="modal-badges" role="dialog" aria-modal="true" aria-labelledby="modal-badges-title">
+    <div class="modal-content modal-content-wide">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="modal-badges-title">🏆 SRE Achievements & Badges Shelf</h3>
+          <span class="modal-subtitle" id="badges-modal-subtitle">Earn badges through incident remediation, speedruns, and zero-drift playbooks</span>
+        </div>
+        <button class="modal-close" id="btn-close-badges" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="badges-stats-banner">
+          <div class="badge-stat-box">
+            <span class="badge-stat-val" id="badges-unlocked-count">0 / 9</span>
+            <span class="badge-stat-lbl">Badges Unlocked</span>
+          </div>
+          <div class="badge-stat-box">
+            <span class="badge-stat-val" id="badges-total-bonus-xp">+0 XP</span>
+            <span class="badge-stat-lbl">Achievement Bonus XP</span>
+          </div>
+          <div class="badge-stat-box">
+            <span class="badge-stat-val" id="badges-highest-streak">0 🔥</span>
+            <span class="badge-stat-lbl">Highest Flawless Streak</span>
+          </div>
+        </div>
+
+        <div class="badges-grid" id="badges-grid">
+          <!-- Dynamically populated from JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamification Celebration Particles -->
+  <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
