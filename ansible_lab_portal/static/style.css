@@ -2226,6 +2226,90 @@ body {
   word-break: break-all;
 }
 
+/* Primer Companion Files (External vars, templates) */
+.primer-companion-files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.primer-companion-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.primer-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.primer-file-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primer-file-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.primer-file-badge.companion-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.primer-file-badge.main-badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.primer-file-path {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.primer-file-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.primer-code-block.companion-code-block {
+  margin-bottom: 0;
+  background: #06090e;
+  border-color: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.primer-main-code-wrap {
+  margin-bottom: 12px;
+}
+
+.primer-main-code-wrap .primer-file-header {
+  margin-bottom: 6px;
+}
+
+.primer-main-code-wrap .primer-code-block {
+  margin-bottom: 0;
+}
+
 .syntax-breakdown-list {
   display: flex;
   flex-direction: column;

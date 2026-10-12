@@ -284,23 +284,27 @@ LEVEL4_EXERCISES = [   {   'difficulty': 'Intermediate',
         'primer': {   'concept': 'The `ansible.builtin.template` module processes templates containing Jinja2 '
                                  'expressions (`{{ ... }}`) and control flow (`{% for %}`, `{% if %}`) on the control '
                                  'node, deploying the dynamically generated result to target hosts.',
+                      'sample_files': [   {   'badge': '📄 Jinja2 Template',
+                                              'desc': 'Template file on control node (.j2) containing Jinja2 syntax and fact references:',
+                                              'path': '/ansible/nginx_vhost.j2',
+                                              'code': "server {\n    listen 80;\n    server_name {{ ansible_facts['nodename'] }}.dataforge.internal;\n    location / {\n        root /var/www/html;\n        index index.html;\n    }\n}\n"}],
                       'demo_code': '---\n'
                                    '- name: Render Dynamic Jinja2 Template\n'
-                                   '  hosts: <target_hosts>\n'
+                                   '  hosts: all\n'
                                    '  gather_facts: true\n'
                                    '  tasks:\n'
                                    '    - name: Generate remote config from template file\n'
                                    '      ansible.builtin.template:\n'
-                                   '        src: /path/to/template.j2\n'
-                                   '        dest: /path/to/remote_file.conf\n'
+                                   '        src: /ansible/nginx_vhost.j2\n'
+                                   '        dest: /etc/nginx_vhost.conf\n'
                                    "        mode: '0644'\n",
                       'quick_tip': 'The src file lives on your control node and is processed through Jinja2 before '
                                    'sending the output to target hosts.',
                       'syntax_breakdown': [   {   'element': 'ansible.builtin.template:',
                                                   'role': 'Jinja2 template rendering engine'},
-                                              {   'element': 'src: /path/to/file.j2',
+                                              {   'element': 'src: /ansible/nginx_vhost.j2',
                                                   'role': 'Template path located on control machine'},
-                                              {   'element': 'dest: /path/to/remote',
+                                              {   'element': 'dest: /etc/nginx_vhost.conf',
                                                   'role': 'Rendered destination file path on target node'}]},
         'reset_playbook': '---\n'
                           '- name: Reset 4.3\n'
@@ -513,20 +517,24 @@ LEVEL4_EXERCISES = [   {   'difficulty': 'Intermediate',
         'primer': {   'concept': 'The `groups` and `hostvars` magic variables allow Jinja2 templates to inspect other '
                                  'hosts in the inventory. A single template can dynamically generate upstream proxy '
                                  'configs, /etc/hosts maps, or database replica lists.',
+                      'sample_files': [   {   'badge': '📄 Jinja2 Loop Template',
+                                              'desc': 'Template file iterating over inventory groups and hostvars:',
+                                              'path': '/ansible/cluster_map.j2',
+                                              'code': "# DataForge Dynamic Cluster Topology\n{% for host in groups['all'] %}\n{{ host }} - {{ hostvars[host]['ansible_host'] | default(host) }}\n{% endfor %}\n"}],
                       'demo_code': '---\n'
                                    '- name: Deploy Dynamic Cluster Mesh\n'
-                                   '  hosts: <target_hosts>\n'
+                                   '  hosts: all\n'
                                    '  gather_facts: false\n'
                                    '  tasks:\n'
                                    '    - name: Render dynamic inventory topology\n'
                                    '      ansible.builtin.template:\n'
-                                   '        src: /path/to/mesh_template.j2\n'
-                                   '        dest: /etc/cluster_mesh.conf\n'
+                                   '        src: /ansible/cluster_map.j2\n'
+                                   '        dest: /etc/cluster_map.txt\n'
                                    "        mode: '0644'\n",
                       'quick_tip': "Inside Jinja2 templates (.j2), use {% for host in groups['all'] %} to iterate "
                                    'through all inventory hosts dynamically.',
                       'syntax_breakdown': [   {   'element': "groups['all']",
-                                                  'role': 'Magic variable containing list of all inventory hostnames'},
+                                                   'role': 'Magic variable containing list of all inventory hostnames'},
                                               {   'element': 'hostvars[host]',
                                                   'role': 'Magic dictionary containing facts and variables of another '
                                                           'host'}]},

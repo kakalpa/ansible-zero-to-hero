@@ -130,23 +130,30 @@ LEVEL3_EXERCISES = [   {   'difficulty': 'Intermediate',
         'primer': {   'concept': 'The `vars_files` directive loads external YAML files containing key-value '
                                  'dictionaries. This decouples infrastructure code from environment-specific '
                                  'configuration, allowing the same playbook to run against dev, staging, or '
-                                 'production.',
+                                 'production.\n\n'
+                                 '💡 **Golden Rule**: An external variables file is a pure YAML dictionary (`key: value`). '
+                                 'Do **not** wrap its contents in a top-level `vars:` key.',
+                      'sample_files': [   {   'badge': '📄 External Var File',
+                                              'desc': 'Plain YAML dictionary (note: raw key-value pairs, NO "vars:" wrapper key):',
+                                              'path': '/ansible/app_vars.yml',
+                                              'code': 'env_tier: production\ndb_port: 5432\napi_endpoint: "https://api.dataforge.internal"\n'}],
                       'demo_code': '---\n'
                                    '- name: External Variable File Separation\n'
-                                   '  hosts: <target_hosts>\n'
+                                   '  hosts: ubuntu\n'
                                    '  gather_facts: false\n'
                                    '  vars_files:\n'
-                                   '    - /path/to/external_variables.yml\n'
+                                   '    - /ansible/app_vars.yml\n'
                                    '  tasks:\n'
                                    '    - name: Apply loaded external variables\n'
                                    '      ansible.builtin.copy:\n'
-                                   '        dest: /path/to/app.env\n'
-                                   '        content: "KEY_A={{ variable_from_file }}\\n"\n',
-                      'quick_tip': 'vars_files loads key-value pairs from external YAML files, decoupling code from '
-                                   'environment values.',
-                      'syntax_breakdown': [   {   'element': 'vars_files:',
-                                                  'role': 'List of external YAML files to load into play variable '
-                                                          'scope'},
+                                   '        dest: /tmp/app_config.env\n'
+                                   '        content: "TIER={{ env_tier }}\n'
+                                   'DB_PORT={{ db_port }}\n"\n',
+                      'quick_tip': 'vars_files loads key-value pairs from external YAML files. Never write "vars:" inside the external file itself!',
+                      'syntax_breakdown': [   {   'element': 'env_tier: production',
+                                                  'role': 'Key-value variable defined inside external file (/ansible/app_vars.yml)'},
+                                              {   'element': 'vars_files:',
+                                                  'role': 'List of external YAML files to load into play variable scope'},
                                               {'element': '- /ansible/app_vars.yml', 'role': 'Path to variables file'},
                                               {   'element': '{{ env_tier }}',
                                                   'role': 'Variable resolved from the external file'}]},

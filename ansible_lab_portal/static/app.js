@@ -1078,7 +1078,56 @@ function renderPrimer(ex) {
   }
   conceptBody.innerHTML = renderSimpleMarkdown(conceptText);
 
-  // 2. Demo Code: from ex.primer.demo_code or ex.solution_code
+  // 2. Companion Sample Files (External vars, templates)
+  const companionContainer = document.getElementById('primer-companion-files');
+  const mainFileHeader = document.getElementById('primer-main-file-header');
+  const mainFilePath = document.getElementById('primer-main-file-path');
+  const mainFileBadge = document.getElementById('primer-main-file-badge');
+
+  if (companionContainer) {
+    if (ex.primer && Array.isArray(ex.primer.sample_files) && ex.primer.sample_files.length > 0) {
+      companionContainer.innerHTML = ex.primer.sample_files.map((file) => `
+        <div class="primer-companion-card">
+          <div class="primer-file-header">
+            <div class="primer-file-title-wrap">
+              <span class="primer-file-badge companion-badge">${escapeHtml(file.badge || '📄 Sample File')}</span>
+              <span class="primer-file-path">${escapeHtml(file.path || '')}</span>
+            </div>
+            <button class="btn btn-secondary btn-xs btn-copy-companion" data-code="${escapeHtml(file.code || '')}" title="Copy file content">📋 Copy</button>
+          </div>
+          ${file.desc ? `<div class="primer-file-desc">${escapeHtml(file.desc)}</div>` : ''}
+          <pre class="code-block primer-code-block companion-code-block"><code>${escapeHtml(file.code || '')}</code></pre>
+        </div>
+      `).join('');
+      companionContainer.style.display = 'flex';
+
+      companionContainer.querySelectorAll('.btn-copy-companion').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.getAttribute('data-code');
+          if (code) {
+            navigator.clipboard.writeText(code);
+            showFloatingToast(true, 'Sample file copied to clipboard!');
+          }
+        });
+      });
+
+      if (mainFileHeader) {
+        if (mainFileBadge) {
+          mainFileBadge.textContent = ex.target_file ? '📘 Playbook' : '💻 Command Blueprint';
+        }
+        if (mainFilePath) {
+          mainFilePath.textContent = ex.target_file || '';
+        }
+        mainFileHeader.style.display = 'flex';
+      }
+    } else {
+      companionContainer.innerHTML = '';
+      companionContainer.style.display = 'none';
+      if (mainFileHeader) mainFileHeader.style.display = 'none';
+    }
+  }
+
+  // 3. Demo Code: from ex.primer.demo_code or ex.solution_code
   const demoCode = (ex.primer && ex.primer.demo_code) ? ex.primer.demo_code : (ex.solution_code || '');
   codeView.querySelector('code').textContent = demoCode;
 
