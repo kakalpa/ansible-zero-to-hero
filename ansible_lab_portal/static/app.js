@@ -81,9 +81,14 @@ const splitPaneResizer = document.getElementById('split-pane-resizer');
 const executionPanel = document.getElementById('execution-panel');
 
 const editorActiveFilename = document.getElementById('editor-active-filename');
-const editorSaveIndicator = document.getElementById('editor-save-indicator');
 const btnEditorSave = document.getElementById('btn-editor-save');
 const btnEditorRun = document.getElementById('btn-editor-run');
+const btnEditorRunText = document.getElementById('btn-editor-run-text');
+const btnEditorRunIcon = document.getElementById('btn-editor-run-icon');
+const btnEditorRunDropdown = document.getElementById('btn-editor-run-dropdown');
+const runOptionsMenu = document.getElementById('run-options-menu');
+const btnFlagCheck = document.getElementById('btn-flag-check');
+const btnFlagDiff = document.getElementById('btn-flag-diff');
 
 const resultFloatingToast = document.getElementById('result-floating-toast');
 const toastIcon = document.getElementById('toast-icon');
@@ -416,6 +421,73 @@ function initCodeEditor() {
   if (btnEditorRun) {
     btnEditorRun.addEventListener('click', () => runCurrentPlaybookInTerminal());
   }
+
+  // Execution flags (--check / --diff) toggles
+  if (btnFlagCheck) {
+    btnFlagCheck.addEventListener('click', (e) => {
+      e.stopPropagation();
+      activePlaybookFlags.check = !activePlaybookFlags.check;
+      updateEditorRunButtonState();
+      showFloatingToast(true, activePlaybookFlags.check ? '🔍 Check Mode active (--check)' : 'Check Mode off');
+    });
+  }
+  if (btnFlagDiff) {
+    btnFlagDiff.addEventListener('click', (e) => {
+      e.stopPropagation();
+      activePlaybookFlags.diff = !activePlaybookFlags.diff;
+      updateEditorRunButtonState();
+      showFloatingToast(true, activePlaybookFlags.diff ? '📄 Diff Mode active (--diff)' : 'Diff Mode off');
+    });
+  }
+
+  // Dropdown menu trigger & options
+  if (btnEditorRunDropdown && runOptionsMenu) {
+    btnEditorRunDropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = runOptionsMenu.style.display !== 'none';
+      runOptionsMenu.style.display = isVisible ? 'none' : 'flex';
+      btnEditorRunDropdown.setAttribute('aria-expanded', !isVisible);
+    });
+
+    document.addEventListener('click', () => {
+      if (runOptionsMenu) {
+        runOptionsMenu.style.display = 'none';
+        if (btnEditorRunDropdown) btnEditorRunDropdown.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    runOptionsMenu.querySelectorAll('.run-option-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        runOptionsMenu.style.display = 'none';
+        if (btnEditorRunDropdown) btnEditorRunDropdown.setAttribute('aria-expanded', 'false');
+        const action = item.getAttribute('data-action');
+        if (action === 'live') {
+          activePlaybookFlags.check = false;
+          activePlaybookFlags.diff = false;
+          updateEditorRunButtonState();
+          runCurrentPlaybookInTerminal();
+        } else if (action === 'dry-run') {
+          activePlaybookFlags.check = true;
+          activePlaybookFlags.diff = true;
+          updateEditorRunButtonState();
+          runCurrentPlaybookInTerminal();
+        } else if (action === 'check-only') {
+          activePlaybookFlags.check = true;
+          activePlaybookFlags.diff = false;
+          updateEditorRunButtonState();
+          runCurrentPlaybookInTerminal();
+        } else if (action === 'diff-only') {
+          activePlaybookFlags.check = false;
+          activePlaybookFlags.diff = true;
+          updateEditorRunButtonState();
+          runCurrentPlaybookInTerminal();
+        } else if (action === 'syntax-check') {
+          runCurrentPlaybookSyntaxCheck();
+        }
+      });
+    });
+  }
   const btnEditorRevert = document.getElementById('btn-editor-revert');
   if (btnEditorRevert) {
     btnEditorRevert.addEventListener('click', () => {
@@ -534,6 +606,35 @@ async function saveCurrentEditorFile() {
   }
 }
 
+let activePlaybookFlags = {
+  check: false,
+  diff: false
+};
+
+function updateEditorRunButtonState() {
+  if (btnFlagCheck) {
+    btnFlagCheck.classList.toggle('active', activePlaybookFlags.check);
+  }
+  if (btnFlagDiff) {
+    btnFlagDiff.classList.toggle('active', activePlaybookFlags.diff);
+  }
+  if (!btnEditorRunText) return;
+
+  if (activePlaybookFlags.check && activePlaybookFlags.diff) {
+    btnEditorRunText.textContent = 'Dry-Run (--check --diff)';
+    if (btnEditorRunIcon) btnEditorRunIcon.textContent = '🔍';
+  } else if (activePlaybookFlags.check) {
+    btnEditorRunText.textContent = 'Check Mode (--check)';
+    if (btnEditorRunIcon) btnEditorRunIcon.textContent = '🔍';
+  } else if (activePlaybookFlags.diff) {
+    btnEditorRunText.textContent = 'Diff Mode (--diff)';
+    if (btnEditorRunIcon) btnEditorRunIcon.textContent = '📄';
+  } else {
+    btnEditorRunText.textContent = 'Run Playbook';
+    if (btnEditorRunIcon) btnEditorRunIcon.textContent = '▶';
+  }
+}
+
 async function runCurrentPlaybookInTerminal() {
   if (isEditorDirty) {
     await saveCurrentEditorFile();
@@ -548,7 +649,11 @@ async function runCurrentPlaybookInTerminal() {
   const ext = currentEditingPath.split('.').pop().toLowerCase();
   let cmd = '';
   if (ext === 'yml' || ext === 'yaml') {
-    cmd = `ansible-playbook ${currentEditingPath}\n`;
+    let flags = [];
+    if (activePlaybookFlags.check) flags.push('--check');
+    if (activePlaybookFlags.diff) flags.push('--diff');
+    const flagStr = flags.length > 0 ? ' ' + flags.join(' ') : '';
+    cmd = `ansible-playbook ${currentEditingPath}${flagStr}\n`;
   } else if (ext === 'sh') {
     cmd = `bash ${currentEditingPath}\n`;
   } else {
@@ -556,6 +661,17 @@ async function runCurrentPlaybookInTerminal() {
   }
 
   sendStringToTerminal(cmd);
+}
+
+async function runCurrentPlaybookSyntaxCheck() {
+  if (isEditorDirty) {
+    await saveCurrentEditorFile();
+  }
+  if (!currentEditingPath) return;
+  if (activeTab === 'editor') {
+    switchTab('split');
+  }
+  sendStringToTerminal(`ansible-playbook ${currentEditingPath} --syntax-check\n`);
 }
 
 // Split Pane Resizer between Editor & Terminal in Split View
@@ -1144,6 +1260,16 @@ function selectExercise(exId) {
   }
   clearTerminalShell();
   resetScenarioTimerStandby(ex);
+
+  // Context-aware execution flag presets
+  if (ex.id === 'l2-13-dry-run-check' || (ex.tasks && ex.tasks.some(t => t.includes('--check')))) {
+    activePlaybookFlags.check = true;
+    activePlaybookFlags.diff = true;
+  } else {
+    activePlaybookFlags.check = false;
+    activePlaybookFlags.diff = false;
+  }
+  updateEditorRunButtonState();
 
   // Update active item in sidebar
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));

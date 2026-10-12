@@ -339,11 +339,62 @@
                 <button class="btn btn-secondary btn-sm" id="btn-editor-revert" title="Revert editor to clean template">
                   <span>↺ Revert</span>
                 </button>
-                <button class="btn btn-primary btn-sm" id="btn-editor-run" title="Execute this playbook in terminal (Ctrl+Enter)">
-                  <span class="btn-icon">▶</span>
-                  <span>Run Playbook</span>
-                  <kbd class="kbd-hint">Ctrl+↵</kbd>
-                </button>
+                <div class="editor-flags-group" title="Ansible Execution Flags">
+                  <button type="button" class="btn-flag-toggle" id="btn-flag-check" title="Toggle Check Mode (--check): Dry-run simulation without touching target systems">
+                    <span>--check</span>
+                  </button>
+                  <button type="button" class="btn-flag-toggle" id="btn-flag-diff" title="Toggle Diff Mode (--diff): Show unified diffs of proposed file changes">
+                    <span>--diff</span>
+                  </button>
+                </div>
+                <div class="split-btn-group" id="run-split-btn-group">
+                  <button class="btn btn-primary btn-sm" id="btn-editor-run" title="Execute this playbook in terminal (Ctrl+Enter)">
+                    <span class="btn-icon" id="btn-editor-run-icon">▶</span>
+                    <span id="btn-editor-run-text">Run Playbook</span>
+                    <kbd class="kbd-hint">Ctrl+↵</kbd>
+                  </button>
+                  <button class="btn btn-primary btn-sm btn-dropdown-trigger" id="btn-editor-run-dropdown" title="Run Options (Dry-Run, Diff, Syntax Check)" aria-haspopup="true" aria-expanded="false">
+                    <span>▾</span>
+                  </button>
+                  <div class="run-options-menu" id="run-options-menu" style="display: none;">
+                    <div class="run-option-item" data-action="live">
+                      <span class="run-option-icon">▶</span>
+                      <div class="run-option-info">
+                        <span class="run-option-label">Execute Live</span>
+                        <span class="run-option-cmd">ansible-playbook &lt;file&gt;</span>
+                      </div>
+                    </div>
+                    <div class="run-option-item" data-action="dry-run">
+                      <span class="run-option-icon">🔍</span>
+                      <div class="run-option-info">
+                        <span class="run-option-label">Dry-Run Preview (--check --diff)</span>
+                        <span class="run-option-cmd">ansible-playbook &lt;file&gt; --check --diff</span>
+                      </div>
+                    </div>
+                    <div class="run-option-item" data-action="check-only">
+                      <span class="run-option-icon">🧪</span>
+                      <div class="run-option-info">
+                        <span class="run-option-label">Check Mode Only (--check)</span>
+                        <span class="run-option-cmd">ansible-playbook &lt;file&gt; --check</span>
+                      </div>
+                    </div>
+                    <div class="run-option-item" data-action="diff-only">
+                      <span class="run-option-icon">📄</span>
+                      <div class="run-option-info">
+                        <span class="run-option-label">Diff Preview Only (--diff)</span>
+                        <span class="run-option-cmd">ansible-playbook &lt;file&gt; --diff</span>
+                      </div>
+                    </div>
+                    <div class="run-option-divider"></div>
+                    <div class="run-option-item" data-action="syntax-check">
+                      <span class="run-option-icon">✓</span>
+                      <div class="run-option-info">
+                        <span class="run-option-label">Syntax Check (--syntax-check)</span>
+                        <span class="run-option-cmd">ansible-playbook &lt;file&gt; --syntax-check</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="codemirror-wrapper" id="codemirror-wrapper">

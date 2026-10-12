@@ -335,6 +335,45 @@ def match_exercise_tasks(exercise: dict, executed_tasks: list, overall_passed: b
             t_clean = clean_task_text(t)
             t_lower = t_clean.lower()
             
+            # 0. Dry-run / Check-mode specific tasks
+            if '--check' in t_lower and ('preview' in t_lower or 'dry-run' in t_lower):
+                history_file = os.path.join(os.path.dirname(target_file_path) if target_file_path else "/ansible", ".lab_bash_history")
+                ran_check = False
+                if os.path.exists(history_file):
+                    try:
+                        with open(history_file, "r") as hf:
+                            if "--check" in hf.read():
+                                ran_check = True
+                    except Exception:
+                        pass
+                if ran_check:
+                    results.append({
+                        'index': idx,
+                        'text': t_clean,
+                        'status': 'passed',
+                        'badge': 'done 👍',
+                        'detail': 'Dry-run preview executed successfully'
+                    })
+                else:
+                    results.append({
+                        'index': idx,
+                        'text': t_clean,
+                        'status': 'pending',
+                        'badge': 'pending ⏳',
+                        'detail': 'Preview changes in dry-run mode using --check --diff'
+                    })
+                continue
+
+            if 'without --check' in t_lower:
+                results.append({
+                    'index': idx,
+                    'text': t_clean,
+                    'status': 'pending',
+                    'badge': 'pending ⏳',
+                    'detail': 'Apply changes across nodes by running without --check'
+                })
+                continue
+
             # 1. Execution task
             if any(k in t_lower for k in ['run ansible-playbook', 'execute ansible-playbook', 'run the playbook']):
                 has_exec_fail = any(at['failed'] for at in executed_tasks)
