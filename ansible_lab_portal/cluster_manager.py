@@ -14,7 +14,8 @@ NODES = [
     {"vmid": 3, "name": "node3-debian13", "ip": "node3-debian13", "os": "Debian 13 Trixie", "family": "Debian", "pkg": "apt", "badge": "TRIXIE", "color": "#a80036"},
     {"vmid": 4, "name": "node4-almalinux", "ip": "node4-almalinux", "os": "AlmaLinux 9.4", "family": "RedHat", "pkg": "dnf", "badge": "ALMA", "color": "#0055a5"},
     {"vmid": 5, "name": "node5-rocky", "ip": "node5-rocky", "os": "Rocky Linux 9.4", "family": "RedHat", "pkg": "dnf", "badge": "ROCKY", "color": "#0fb573"},
-    {"vmid": 6, "name": "node6-alpine", "ip": "node6-alpine", "os": "Alpine Linux 3.22", "family": "Alpine", "pkg": "apk", "badge": "ALPINE", "color": "#0d597f"}
+    {"vmid": 6, "name": "node6-alpine", "ip": "node6-alpine", "os": "Alpine Linux 3.22", "family": "Alpine", "pkg": "apk", "badge": "ALPINE", "color": "#0d597f"},
+    {"vmid": 7, "name": "node7-alpine", "ip": "node7-alpine", "os": "Alpine Linux 3.22 (Edge)", "family": "Alpine", "pkg": "apk", "badge": "EDGE", "color": "#06b6d4"}
 ]
 
 DOCKER_SOCKET = os.getenv("DOCKER_SOCKET", "/var/run/docker.sock")
@@ -221,8 +222,8 @@ def rollback_entire_cluster():
                 return f"    Container {name} restarted."
             return f"    Container {name} ping verified."
 
-        logs.append("[*] Resetting 6 nodes in parallel...")
-        with ThreadPoolExecutor(max_workers=6) as pool:
+        logs.append("[*] Resetting 7 nodes in parallel...")
+        with ThreadPoolExecutor(max_workers=7) as pool:
             restart_logs = list(pool.map(restart_node, [n["name"] for n in NODES]))
             logs.extend(restart_logs)
 

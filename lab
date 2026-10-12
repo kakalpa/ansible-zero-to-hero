@@ -39,7 +39,7 @@ banner() {
     echo -e "${CYAN}${BOLD}"
     echo "  ╔═══════════════════════════════════════════════════════════════╗"
     echo "  ║        ANSIBLE ZERO-TO-HERO & SRE INCIDENT SIMULATOR          ║"
-    echo "  ║         Interactive 6-Node Heterogeneous Fleet Lab            ║"
+    echo "  ║         Interactive 7-Node Heterogeneous Fleet Lab            ║"
     echo "  ╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -66,7 +66,7 @@ cmd_start() {
     echo -e "    ${BOLD}Portal URL:${NC}    ${CYAN}http://$BIND:$PORT${NC}"
     echo -e "    ${BOLD}Playbooks:${NC}     $ROOT_DIR/workspace/"
     echo -e "    ${BOLD}Fleet Nodes:${NC}   Ubuntu 22.04, Debian 12, Debian 13,"
-    echo -e "                   AlmaLinux 9.4, Rocky Linux 9.4, Alpine 3.22"
+    echo -e "                   AlmaLinux 9.4, Rocky Linux 9.4, Alpine 3.22, node7-alpine (Edge)"
     echo ""
     echo -e "    ${BOLD}Quick Commands:${NC}"
     echo -e "      ${GREEN}./lab status${NC}   Check cluster health & resource usage"

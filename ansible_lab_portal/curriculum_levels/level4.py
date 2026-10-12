@@ -1600,5 +1600,258 @@ LEVEL4_EXERCISES = [   {   'difficulty': 'Intermediate',
                                '          - "\'cluster_node=\' in d_res.stdout"\n'
                                '          - "\'os_family=\' in d_res.stdout"\n'
                                '          - "\'stream_active=true\' in d_res.stdout"\n',
-        'xp': 300}]
+        'xp': 300},
+    {   'difficulty': 'Advanced',
+        'explanation': '### Grand Capstone: End-to-End Production Provisioning Pipeline\n'
+                       '1. Append host to `/ansible/inventory.ini`:\n'
+                       '```ini\n'
+                       '[edge]\n'
+                       'node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'
+                       '```\n'
+                       '2. Author `/ansible/provision_client.yml`:\n'
+                       '```yaml\n'
+                       '---\n'
+                       '- name: Production Client Commissioning Pipeline\n'
+                       '  hosts: edge\n'
+                       '  gather_facts: true\n'
+                       '  tasks:\n'
+                       '    - name: Ensure wheel group exists\n'
+                       '      ansible.builtin.group:\n'
+                       '        name: wheel\n'
+                       '        state: present\n'
+                       '    - name: Create deployer user\n'
+                       '      ansible.builtin.user:\n'
+                       '        name: deployer\n'
+                       '        group: wheel\n'
+                       '        shell: /bin/bash\n'
+                       '        create_home: true\n'
+                       '        state: present\n'
+                       '    - name: Configure passwordless sudo\n'
+                       '      ansible.builtin.copy:\n'
+                       '        dest: /etc/sudoers.d/deployer\n'
+                       '        content: "deployer ALL=(ALL) NOPASSWD: ALL\n"\n'
+                       "        mode: '0440'\n"
+                       '    - name: Install Nginx web server\n'
+                       '      community.general.apk:\n'
+                       '        name: nginx\n'
+                       '        state: present\n'
+                       '    - name: Deploy index page\n'
+                       '      ansible.builtin.copy:\n'
+                       '        dest: /var/lib/nginx/html/index.html\n'
+                       '        content: "<h1>DataForge Edge Node Online: {{ ansible_hostname }}</h1>\n"\n'
+                       "        mode: '0644'\n"
+                       '    - name: Start Nginx web service\n'
+                       '      ansible.builtin.service:\n'
+                       '        name: nginx\n'
+                       '        state: started\n'
+                       '```\n'
+                       'Execute with:\n'
+                       '```bash\n'
+                       'ansible-playbook /ansible/provision_client.yml\n'
+                       '```',
+        'hints': [   {   'level': 'Hint 1: inventory.ini enrollment',
+                         'text': 'Add this to /ansible/inventory.ini:\n[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3'},
+                     {   'level': 'Hint 2: sudoers and user creation',
+                         'text': 'user: name=deployer group=wheel shell=/bin/bash\ncopy: dest=/etc/sudoers.d/deployer content="deployer ALL=(ALL) NOPASSWD: ALL\\n" mode=\'0440\''},
+                     {   'level': 'Hint 3: Nginx on Alpine',
+                         'text': 'community.general.apk: name=nginx state=present\ncopy: dest=/var/lib/nginx/html/index.html content="<h1>DataForge Edge Node Online</h1>\\n"\nservice: name=nginx state=started'}],
+        'id': 'l4-14-grand-capstone',
+        'inspect_cmd': 'curl -s http://node7-alpine/',
+        'module': 'lvl4',
+        'primer': {   'concept': 'Welcome to the **Grand Capstone Mission**! In this scenario, you step into the role of a Senior SRE '
+                                 'commissioning a completely unmanaged machine (`node7-alpine`) on the operations network.\n\n'
+                                 'You will build a full, production-grade automated onboarding lifecycle from scratch: '
+                                 'registering the host in inventory, creating an administrative user with passwordless sudo, '
+                                 'installing the Nginx web application, deploying an HTML payload, and starting the daemon.',
+                      'sample_files': [   {   'badge': '📄 Inventory Requirement',
+                                              'desc': 'Required entry in /ansible/inventory.ini:',
+                                              'path': '/ansible/inventory.ini',
+                                              'code': '[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'}],
+                      'demo_code': '---\n'
+                                   '- name: Production Client Commissioning Pipeline\n'
+                                   '  hosts: edge\n'
+                                   '  gather_facts: true\n'
+                                   '  tasks:\n'
+                                   '    - name: Create wheel group and deployer user\n'
+                                   '      ansible.builtin.user:\n'
+                                   '        name: deployer\n'
+                                   '        group: wheel\n'
+                                   '        shell: /bin/bash\n'
+                                   '        create_home: true\n'
+                                   '    - name: Configure passwordless sudo for deployer\n'
+                                   '      ansible.builtin.copy:\n'
+                                   '        dest: /etc/sudoers.d/deployer\n'
+                                   '        content: "deployer ALL=(ALL) NOPASSWD: ALL\n"\n'
+                                   "        mode: '0440'\n"
+                                   '    - name: Install Nginx web application\n'
+                                   '      community.general.apk:\n'
+                                   '        name: nginx\n'
+                                   '        state: present\n'
+                                   '    - name: Deploy production welcome page\n'
+                                   '      ansible.builtin.copy:\n'
+                                   '        dest: /var/lib/nginx/html/index.html\n'
+                                   '        content: "<h1>DataForge Edge Node Online</h1>\n"\n'
+                                   "        mode: '0644'\n"
+                                   '    - name: Start Nginx web service\n'
+                                   '      ansible.builtin.service:\n'
+                                   '        name: nginx\n'
+                                   '        state: started\n',
+                      'quick_tip': 'Alpine Nginx serves files from /var/lib/nginx/html/. Make sure /etc/sudoers.d/deployer has mode 0440.',
+                      'syntax_breakdown': [   {'element': 'ansible.builtin.user', 'role': 'Creates Unix system user with home directory and shell'},
+                                              {'element': '/etc/sudoers.d/deployer', 'role': 'Modular sudoers configuration with 0440 permission'},
+                                              {'element': 'community.general.apk', 'role': 'Alpine Linux native package manager module'},
+                                              {'element': '/var/lib/nginx/html/index.html', 'role': 'Default document root on Alpine Nginx'},
+                                              {'element': 'ansible.builtin.service', 'role': 'Controls background service lifecycle'}]},
+        'reset_playbook': '---\n'
+                          '- name: Reset 4.14 Inventory\n'
+                          '  hosts: localhost\n'
+                          '  connection: local\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Reset inventory.ini edge entry\n'
+                          '      ansible.builtin.lineinfile:\n'
+                          '        path: /ansible/inventory.ini\n'
+                          "        regexp: '^(node7-alpine|\\[edge\\])'\n"
+                          '        state: absent\n'
+                          '- name: Reset 4.14 Edge Node State\n'
+                          '  hosts: node7-alpine\n'
+                          '  gather_facts: false\n'
+                          '  vars:\n'
+                          '    ansible_python_interpreter: /usr/bin/python3\n'
+                          '  tasks:\n'
+                          '    - name: Stop nginx\n'
+                          '      ansible.builtin.command: pkill nginx\n'
+                          '      ignore_errors: true\n'
+                          '    - name: Purge nginx and pcre2\n'
+                          '      community.general.apk:\n'
+                          '        name:\n'
+                          '          - nginx\n'
+                          '          - pcre2\n'
+                          '        state: absent\n'
+                          '      ignore_errors: true\n'
+                          '    - name: Remove deployer user\n'
+                          '      ansible.builtin.user:\n'
+                          '        name: deployer\n'
+                          '        state: absent\n'
+                          '        remove: true\n'
+                          '      ignore_errors: true\n'
+                          '    - name: Remove sudoers and html drop-ins\n'
+                          '      ansible.builtin.file:\n'
+                          '        path: "{{ item }}"\n'
+                          '        state: absent\n'
+                          '      loop:\n'
+                          '        - /etc/sudoers.d/deployer\n'
+                          '        - /var/lib/nginx/html/index.html\n'
+                          '      ignore_errors: true\n'
+                          '    - name: Restore default nginx server config\n'
+                          '      ansible.builtin.copy:\n'
+                          '        dest: /etc/nginx/http.d/default.conf\n'
+                          '        content: "server {\\n    listen 80 default_server;\\n    root /var/lib/nginx/html;\\n    index index.html;\\n}\\n"\n'
+                          "        mode: '0644'\n"
+                          '      ignore_errors: true\n',
+        'scenario': 'Welcome to the **Grand Capstone Mission**!\n\n'
+                    'A brand-new edge computing node (`node7-alpine`) has just arrived on the operations network.\n\n'
+                    'As the Senior Systems Administrator, you are tasked with taking this unmanaged machine to fully hardened, '
+                    'compliant production readiness in a single automated lifecycle:\n\n'
+                    '1. **Enroll Host**: Append group `[edge]` with `node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3` to `/ansible/inventory.ini`.\n'
+                    '2. **Author Playbook**: Create `/ansible/provision_client.yml` targeting `edge` with `gather_facts: true`.\n'
+                    '3. **Create Operations User**: Ensure group `wheel` exists and create user `deployer` with group `wheel` and `/bin/bash` shell.\n'
+                    '4. **Configure Sudoers**: Write `/etc/sudoers.d/deployer` granting `deployer ALL=(ALL) NOPASSWD: ALL` with mode `0440`.\n'
+                    '5. **Install Nginx**: Use `community.general.apk` (or `package`) to install package `nginx`.\n'
+                    '6. **Deploy Landing Page**: Write `/var/lib/nginx/html/index.html` with content `<h1>DataForge Edge Node Online</h1>`.\n'
+                    '7. **Start Daemon**: Ensure service `nginx` is `started`.\n'
+                    '8. **Execute**: Run `ansible-playbook /ansible/provision_client.yml` to complete your commissioning!',
+        'solution_code': '---\n'
+                         '- name: Production Client Commissioning Pipeline\n'
+                         '  hosts: edge\n'
+                         '  gather_facts: true\n'
+                         '  tasks:\n'
+                         '    - name: Ensure wheel group exists\n'
+                         '      ansible.builtin.group:\n'
+                         '        name: wheel\n'
+                         '        state: present\n'
+                         '    - name: Create deployer user\n'
+                         '      ansible.builtin.user:\n'
+                         '        name: deployer\n'
+                         '        group: wheel\n'
+                         '        shell: /bin/bash\n'
+                         '        create_home: true\n'
+                         '        state: present\n'
+                         '    - name: Configure passwordless sudo\n'
+                         '      ansible.builtin.copy:\n'
+                         '        dest: /etc/sudoers.d/deployer\n'
+                         '        content: "deployer ALL=(ALL) NOPASSWD: ALL\n"\n'
+                         "        mode: '0440'\n"
+                         '    - name: Install Nginx web server\n'
+                         '      community.general.apk:\n'
+                         '        name: nginx\n'
+                         '        state: present\n'
+                         '    - name: Deploy index page\n'
+                         '      ansible.builtin.copy:\n'
+                         '        dest: /var/lib/nginx/html/index.html\n'
+                         '        content: "<h1>DataForge Edge Node Online</h1>\n"\n'
+                         "        mode: '0644'\n"
+                         '    - name: Start Nginx web service\n'
+                         '      ansible.builtin.service:\n'
+                         '        name: nginx\n'
+                         '        state: started\n',
+        'solution_type': 'playbook',
+        'target': 'edge',
+        'target_file': '/ansible/provision_client.yml',
+        'tasks': [   '1. Enroll node7-alpine in /ansible/inventory.ini under group [edge].',
+                     '2. Author /ansible/provision_client.yml targeting group edge.',
+                     '3. Create group wheel and administrative user deployer with shell /bin/bash.',
+                     '4. Deploy /etc/sudoers.d/deployer with passwordless sudo (mode 0440).',
+                     '5. Install package nginx and deploy /var/lib/nginx/html/index.html.',
+                     '6. Start the nginx service daemon.',
+                     '7. Execute ansible-playbook /ansible/provision_client.yml and achieve 100% verification!'],
+        'title': 'Lesson 4.14: GRAND CAPSTONE: Full Fleet Commissioning — End-to-End Linux Client Provisioning',
+        'validation_playbook': '---\n'
+                               '- name: Validate 4.14 Inventory\n'
+                               '  hosts: localhost\n'
+                               '  connection: local\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Check inventory.ini\n'
+                               '      ansible.builtin.command: grep -E "node7-alpine" /ansible/inventory.ini\n'
+                               '      register: inv_chk\n'
+                               '    - name: Assert inventory entry\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'node7-alpine\' in inv_chk.stdout"\n'
+                               '- name: Validate 4.14 Edge Provisioning State\n'
+                               '  hosts: node7-alpine\n'
+                               '  gather_facts: false\n'
+                               '  vars:\n'
+                               '    ansible_python_interpreter: /usr/bin/python3\n'
+                               '  tasks:\n'
+                               '    - name: Check deployer user\n'
+                               '      ansible.builtin.command: id deployer\n'
+                               '      register: user_chk\n'
+                               '    - name: Assert deployer exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'deployer\' in user_chk.stdout"\n'
+                               '    - name: Check sudoers file\n'
+                               '      ansible.builtin.command: cat /etc/sudoers.d/deployer\n'
+                               '      register: sudo_chk\n'
+                               '    - name: Assert sudoers content\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'deployer ALL=(ALL) NOPASSWD: ALL\' in sudo_chk.stdout"\n'
+                               '    - name: Check nginx process\n'
+                               '      ansible.builtin.command: pgrep nginx\n'
+                               '      register: nginx_chk\n'
+                               '    - name: Assert nginx running\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "nginx_chk.stdout != \'\'"\n'
+                               '    - name: Test HTTP response from nginx\n'
+                               '      ansible.builtin.command: wget -qO- http://127.0.0.1/\n'
+                               '      register: http_chk\n'
+                               '    - name: Assert web page rendered\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'DataForge\' in http_chk.stdout or \'Edge\' in http_chk.stdout"\n',
+        'xp': 500}]
 

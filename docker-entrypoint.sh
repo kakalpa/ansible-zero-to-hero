@@ -21,8 +21,15 @@ cp "$KEY_SOURCE/id_ed25519" /root/.ssh/master
 cp "$KEY_SOURCE/id_ed25519" /root/.ssh/id_ed25519
 chmod 600 /root/.ssh/master /root/.ssh/id_ed25519
 
+if [ -f "$KEY_SOURCE/id_ed25519.pub" ]; then
+    cp "$KEY_SOURCE/id_ed25519.pub" /root/.ssh/id_ed25519.pub
+else
+    ssh-keygen -y -f /root/.ssh/id_ed25519 > /root/.ssh/id_ed25519.pub
+fi
+chmod 644 /root/.ssh/id_ed25519.pub
+
 if [ -d /shared-keys ] && [ "$KEY_SOURCE" != "/shared-keys" ]; then
-    cp "$KEY_SOURCE/id_ed25519.pub" /shared-keys/id_ed25519.pub 2>/dev/null || true
+    cp /root/.ssh/id_ed25519.pub /shared-keys/id_ed25519.pub 2>/dev/null || true
 fi
 
 cat <<'EOFCONFIG' > /root/.ssh/config

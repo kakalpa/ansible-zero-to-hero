@@ -35,6 +35,7 @@ services:
       - node4-almalinux
       - node5-rocky
       - node6-alpine
+      - node7-alpine
 
   node1-ubuntu:
     build:
@@ -156,6 +157,27 @@ services:
         aliases:
           - node6-alpine
     mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node7-alpine:
+    build:
+      context: .
+      dockerfile: docker/node-alpine.Dockerfile
+    image: ${IMAGE_PREFIX:-ansible-lab-}node7-alpine:${IMAGE_TAG:-latest}
+    container_name: node7-alpine
+    hostname: node7-alpine
+    restart: unless-stopped
+    volumes:
+      - cluster-keys:/shared-keys:ro
+    networks:
+      ansible-net:
+        aliases:
+          - node7-alpine
+    mem_limit: 128m
     healthcheck:
       test: ["CMD-SHELL", "pgrep sshd || exit 1"]
       interval: 10s

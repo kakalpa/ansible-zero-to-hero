@@ -411,8 +411,55 @@ def match_exercise_tasks(exercise: dict, executed_tasks: list, overall_passed: b
                     })
                     continue
 
+            # 2b. Inventory enrollment check (e.g. Enroll node7-alpine in /ansible/inventory.ini under group [edge])
+            if 'inventory.ini' in t_lower and ('enroll' in t_lower or 'add' in t_lower or 'group' in t_lower or 'node7' in t_lower):
+                inv_path = '/ansible/inventory.ini'
+                has_node7 = False
+                if os.path.exists(inv_path):
+                    with open(inv_path, 'r') as f:
+                        has_node7 = 'node7-alpine' in f.read()
+                if has_node7:
+                    results.append({
+                        'index': idx,
+                        'text': t_clean,
+                        'status': 'passed',
+                        'badge': 'done 👍',
+                        'detail': ''
+                    })
+                    continue
+                else:
+                    results.append({
+                        'index': idx,
+                        'text': t_clean,
+                        'status': 'failed',
+                        'badge': 'missing entry 👎',
+                        'detail': 'node7-alpine not found in /ansible/inventory.ini'
+                    })
+                    continue
+
+            # 2c. Ad-hoc connectivity verification (e.g. ansible edge -m ping)
+            if 'ad-hoc' in t_lower or 'edge -m ping' in t_lower:
+                hist_path = '/ansible/.lab_bash_history'
+                hist_has_ping = False
+                if os.path.exists(hist_path):
+                    with open(hist_path, 'r') as f:
+                        hist_has_ping = 'edge -m ping' in f.read()
+                inv_has_node7 = False
+                if os.path.exists('/ansible/inventory.ini'):
+                    with open('/ansible/inventory.ini', 'r') as f:
+                        inv_has_node7 = 'node7-alpine' in f.read()
+                if hist_has_ping or inv_has_node7:
+                    results.append({
+                        'index': idx,
+                        'text': t_clean,
+                        'status': 'passed',
+                        'badge': 'done 👍',
+                        'detail': ''
+                    })
+                    continue
+
             # 3. Module / directive check
-            known_modules = ['debug', 'copy', 'file', 'template', 'service', 'lineinfile', 'blockinfile', 'user', 'apt', 'dnf', 'package', 'command', 'shell', 'stat', 'assert']
+            known_modules = ['debug', 'copy', 'file', 'template', 'service', 'lineinfile', 'blockinfile', 'user', 'group', 'apt', 'dnf', 'package', 'apk', 'command', 'shell', 'stat', 'assert']
             found_mod = next((m for m in known_modules if m in t_lower), None)
             if found_mod and (found_mod in target_content or f'ansible.builtin.{found_mod}' in target_content):
                 m_param = re.search(r'parameter\s+([a-zA-Z0-9_]+)', t_lower)

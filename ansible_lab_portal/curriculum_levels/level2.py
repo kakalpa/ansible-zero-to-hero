@@ -1284,5 +1284,137 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                '      ansible.builtin.assert:\n'
                                '        that:\n'
                                '          - "\'compliance_level=gold\' in sa_res.stdout"\n',
-        'xp': 100}]
+        'xp': 100},
+    {   'difficulty': 'Intermediate',
+        'explanation': '### Onboarding New Systems into Ansible\n'
+                       '1. Append host to `/ansible/inventory.ini`:\n'
+                       '```ini\n'
+                       '[edge]\n'
+                       'node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'
+                       '```\n'
+                       '2. Verify connectivity with ad-hoc ping:\n'
+                       '```bash\n'
+                       'ansible edge -m ping\n'
+                       '```\n'
+                       '3. Execute onboarding playbook:\n'
+                       '```yaml\n'
+                       '---\n'
+                       '- name: Onboard Edge Client\n'
+                       '  hosts: edge\n'
+                       '  gather_facts: false\n'
+                       '  tasks:\n'
+                       '    - name: Install curl utility\n'
+                       '      community.general.apk:\n'
+                       '        name: curl\n'
+                       '        state: present\n'
+                       '```\n'
+                       'Execute with:\n'
+                       '```bash\n'
+                       'ansible-playbook /ansible/onboard_client.yml\n'
+                       '```',
+        'hints': [   {   'level': 'Hint 1: inventory.ini entry',
+                         'text': 'Add this to /ansible/inventory.ini:\n[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3'},
+                     {   'level': 'Hint 2: Playbook syntax',
+                         'text': 'hosts: edge\ntasks:\n  - name: Install curl\n    community.general.apk:\n      name: curl\n      state: present'}],
+        'id': 'l2-14-host-onboarding',
+        'inspect_cmd': 'ansible edge -m ping',
+        'module': 'lvl2',
+        'primer': {   'concept': 'Ansible is agentless — it can only manage systems that are registered in an **inventory**. '
+                                 'When a new server powers on (`node7-alpine`), you must declare it in `/ansible/inventory.ini` '
+                                 'under a group before Ansible commands can reach it.\n\n'
+                                 'Once enrolled, you test discovery with `ansible <group> -m ping` and run an onboarding '
+                                 'playbook to bootstrap packages and configuration.',
+                      'sample_files': [   {   'badge': '📄 Inventory Entry',
+                                              'desc': 'Required entry to add at the bottom of /ansible/inventory.ini:',
+                                              'path': '/ansible/inventory.ini',
+                                              'code': '[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'}],
+                      'demo_code': '---\n'
+                                   '- name: Onboard Edge Client\n'
+                                   '  hosts: edge\n'
+                                   '  gather_facts: false\n'
+                                   '  tasks:\n'
+                                   '    - name: Install essential curl utility\n'
+                                   '      community.general.apk:\n'
+                                   '        name: curl\n'
+                                   '        state: present\n',
+                      'quick_tip': "Add '[edge]' with 'node7-alpine' to /ansible/inventory.ini first. Then run 'ansible edge -m ping' before running your playbook.",
+                      'syntax_breakdown': [   {'element': '[edge]', 'role': 'New group heading defined in inventory.ini'},
+                                              {'element': 'ansible_host=node7-alpine', 'role': 'Target client hostname on Docker network'},
+                                              {'element': 'ansible_python_interpreter=/usr/bin/python3', 'role': 'Explicit Python binary path for Alpine'},
+                                              {'element': 'hosts: edge', 'role': 'Playbook target restricted to the newly onboarded group'}]},
+        'reset_playbook': '---\n'
+                          '- name: Reset 2.14 Inventory\n'
+                          '  hosts: localhost\n'
+                          '  connection: local\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Remove edge from inventory.ini if present\n'
+                          '      ansible.builtin.lineinfile:\n'
+                          '        path: /ansible/inventory.ini\n'
+                          "        regexp: '^(node7-alpine|\\[edge\\])'\n"
+                          '        state: absent\n'
+                          '- name: Clean curl from node7-alpine\n'
+                          '  hosts: node7-alpine\n'
+                          '  gather_facts: false\n'
+                          '  vars:\n'
+                          '    ansible_python_interpreter: /usr/bin/python3\n'
+                          '  tasks:\n'
+                          '    - name: Purge curl\n'
+                          '      community.general.apk:\n'
+                          '        name: curl\n'
+                          '        state: absent\n'
+                          '      ignore_errors: true\n',
+        'scenario': 'DataForge has provisioned a brand-new Alpine edge client on the operations network: `node7-alpine`.\n\n'
+                    'Although `node7-alpine` is powered on, it is currently **unmanaged** because it is not listed in your inventory.\n\n'
+                    'Your assignment:\n'
+                    '> *"1. Open `/ansible/inventory.ini` and append a new group `[edge]` containing:*\n'
+                    '> *   `node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3`*\n'
+                    '> *2. Test discovery: `ansible edge -m ping`*\n'
+                    '> *3. Author `/ansible/onboard_client.yml` targeting group `edge` to install `curl` using `community.general.apk`.*\n'
+                    '> *4. Execute `ansible-playbook /ansible/onboard_client.yml`."*',
+        'solution_code': '---\n'
+                         '- name: Onboard Edge Client\n'
+                         '  hosts: edge\n'
+                         '  gather_facts: false\n'
+                         '  tasks:\n'
+                         '    - name: Install curl utility\n'
+                         '      community.general.apk:\n'
+                         '        name: curl\n'
+                         '        state: present\n',
+        'solution_type': 'playbook',
+        'target': 'edge',
+        'target_file': '/ansible/onboard_client.yml',
+        'tasks': [   '1. Enroll node7-alpine under group [edge] in /ansible/inventory.ini.',
+                     '2. Verify connectivity with ad-hoc command: ansible edge -m ping.',
+                     '3. Author /ansible/onboard_client.yml targeting group edge.',
+                     '4. Ensure package curl is installed on the edge client.',
+                     '5. Execute ansible-playbook /ansible/onboard_client.yml.'],
+        'title': 'Lesson 2.14: Host Onboarding — Enrolling a Client into Inventory & Bootstrapping SSH Trust',
+        'validation_playbook': '---\n'
+                               '- name: Validate 2.14 Inventory\n'
+                               '  hosts: localhost\n'
+                               '  connection: local\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Check inventory.ini for node7-alpine\n'
+                               '      ansible.builtin.command: grep -E "node7-alpine" /ansible/inventory.ini\n'
+                               '      register: inv_check\n'
+                               '    - name: Assert inventory entry exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'node7-alpine\' in inv_check.stdout"\n'
+                               '- name: Validate 2.14 Package on Edge\n'
+                               '  hosts: node7-alpine\n'
+                               '  gather_facts: false\n'
+                               '  vars:\n'
+                               '    ansible_python_interpreter: /usr/bin/python3\n'
+                               '  tasks:\n'
+                               '    - name: Verify curl is installed on node7-alpine\n'
+                               '      ansible.builtin.command: which curl\n'
+                               '      register: curl_check\n'
+                               '    - name: Assert curl exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'/usr/bin/curl\' in curl_check.stdout or \'curl\' in curl_check.stdout"\n',
+        'xp': 150}]
 

@@ -65,6 +65,7 @@ DEFAULT_TARGET_FILES = {
     "l2-11-permissions-hardening": "/ansible/permissions.yml",
     "l2-12-purge-deprecated": "/ansible/vault.yml",
     "l2-13-dry-run-check": "/ansible/compliance.yml",
+    "l2-14-host-onboarding": "/ansible/onboard_client.yml",
     # Level 3 (12 lessons)
     "l3-1-vars-section": "/ansible/vars.yml",
     "l3-2-vars-files": "/ansible/site_vars.yml",
@@ -78,7 +79,7 @@ DEFAULT_TARGET_FILES = {
     "l3-10-reactive-when": "/ansible/reactive.yml",
     "l3-11-changed-when": "/ansible/uptime.yml",
     "l3-12-assert-validation": "/ansible/polyglot_fix.yml",
-    # Level 4 (13 lessons)
+    # Level 4 (14 lessons)
     "l4-1-handlers-notify": "/ansible/handlers.yml",
     "l4-2-flush-handlers": "/ansible/flush.yml",
     "l4-3-jinja2-templates": "/ansible/template.yml",
@@ -92,6 +93,7 @@ DEFAULT_TARGET_FILES = {
     "l4-11-fault-tolerance": "/ansible/rescue.yml",
     "l4-12-rolling-updates": "/ansible/rolling.yml",
     "l4-13-capstone-launch": "/ansible/canary_deploy.yml",
+    "l4-14-grand-capstone": "/ansible/provision_client.yml",
 }
 
 # Dynamically load any custom scenario packs placed in custom_scenarios/

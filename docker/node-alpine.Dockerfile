@@ -8,7 +8,8 @@ RUN apk add --no-cache \
     curl \
     iputils \
     bash \
-    procps
+    procps \
+    openrc
 
 RUN mkdir -p /var/run/sshd /root/.ssh && \
     chmod 700 /root/.ssh && \
