@@ -14,8 +14,7 @@ RUN mkdir -p /var/run/sshd /root/.ssh && \
     chmod 700 /root/.ssh && \
     ssh-keygen -A
 
-COPY docker/keys/id_ed25519.pub /root/.ssh/authorized_keys
-RUN chmod 600 /root/.ssh/authorized_keys
+RUN touch /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
 
 COPY docker/node-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

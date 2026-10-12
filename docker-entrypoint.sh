@@ -4,20 +4,25 @@ set -e
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
-mkdir -p /ansible/docker/keys
-if [ ! -f /ansible/docker/keys/id_ed25519 ]; then
+KEY_SOURCE="/ansible/docker/keys"
+if [ -d /shared-keys ]; then
+    KEY_SOURCE="/shared-keys"
+fi
+mkdir -p "$KEY_SOURCE"
+
+if [ ! -f "$KEY_SOURCE/id_ed25519" ]; then
     echo "[*] Generating fresh Ed25519 cluster keypair..."
-    ssh-keygen -t ed25519 -N "" -C "ansible-portal@cluster" -f /ansible/docker/keys/id_ed25519
-    chmod 600 /ansible/docker/keys/id_ed25519
-    chmod 644 /ansible/docker/keys/id_ed25519.pub
+    ssh-keygen -t ed25519 -N "" -C "ansible-portal@cluster" -f "$KEY_SOURCE/id_ed25519"
+    chmod 600 "$KEY_SOURCE/id_ed25519"
+    chmod 644 "$KEY_SOURCE/id_ed25519.pub"
 fi
 
-cp /ansible/docker/keys/id_ed25519 /root/.ssh/master
-cp /ansible/docker/keys/id_ed25519 /root/.ssh/id_ed25519
+cp "$KEY_SOURCE/id_ed25519" /root/.ssh/master
+cp "$KEY_SOURCE/id_ed25519" /root/.ssh/id_ed25519
 chmod 600 /root/.ssh/master /root/.ssh/id_ed25519
 
-if [ -d /shared-keys ]; then
-    cp /ansible/docker/keys/id_ed25519.pub /shared-keys/id_ed25519.pub 2>/dev/null || true
+if [ -d /shared-keys ] && [ "$KEY_SOURCE" != "/shared-keys" ]; then
+    cp "$KEY_SOURCE/id_ed25519.pub" /shared-keys/id_ed25519.pub 2>/dev/null || true
 fi
 
 cat <<'EOFCONFIG' > /root/.ssh/config
