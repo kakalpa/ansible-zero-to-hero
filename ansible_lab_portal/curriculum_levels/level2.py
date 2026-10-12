@@ -805,7 +805,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                          'text': 'tasks:\\n  - name: Ensure cron is running\\n    ansible.builtin.service:\\n      '
                                  'name: cron\\n      state: started\\n      enabled: true'}],
         'id': 'l2-9-service-control',
-        'inspect_cmd': "ansible debian -m command -a 'systemctl is-active cron'",
+        'inspect_cmd': "ansible debian -m command -a 'service cron status'",
         'module': 'lvl2',
         'primer': {   'concept': 'The `ansible.builtin.service` module controls system services across multiple init '
                                  'systems. It is idempotent: if the daemon is already running, Ansible takes no action '
@@ -871,9 +871,9 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                '  gather_facts: false\n'
                                '  tasks:\n'
                                '    - name: Check cron status\n'
-                               '      ansible.builtin.command: systemctl is-active cron\n'
+                               '      ansible.builtin.command: service cron status\n'
                                '      register: s_res\n'
-                               '      failed_when: s_res.stdout != "active"\n',
+                               '      failed_when: s_res.rc != 0\n',
         'xp': 100},
     {   'difficulty': 'Intermediate',
         'explanation': '### Multi-Task Playbook Execution\n'

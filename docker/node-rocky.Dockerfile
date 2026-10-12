@@ -6,6 +6,7 @@ RUN dnf install -y --setopt=install_weak_deps=False --allowerasing \
     sudo \
     iputils \
     procps-ng \
+    cronie \
     && dnf clean all
 
 RUN mkdir -p /var/run/sshd /root/.ssh && \

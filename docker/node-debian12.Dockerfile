@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     iputils-ping \
     procps \
+    cron \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
