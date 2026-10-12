@@ -440,6 +440,13 @@ def reset_exercise(ex_id: str):
     else:
         result = {"success": True, "output": "No cleanup required for this exercise."}
 
+    # If exercise has an explicit setup_playbook, re-seed it so seed files/templates are guaranteed fresh
+    if ex.get("setup_playbook") and ex.get("reset_playbook"):
+        try:
+            run_ansible_playbook(ex.get("setup_playbook"))
+        except Exception:
+            pass
+
     # Clear user execution log after reset so doing nothing cannot pass
     try:
         with open("/var/log/ansible.log", "w") as f:

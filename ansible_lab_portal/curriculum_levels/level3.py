@@ -165,7 +165,18 @@ LEVEL3_EXERCISES = [   {   'difficulty': 'Intermediate',
                           '    - name: Remove app_config.env\n'
                           '      ansible.builtin.file:\n'
                           '        path: /tmp/app_config.env\n'
-                          '        state: absent\n',
+                          '        state: absent\n'
+                          '- name: Ensure app_vars.yml exists\n'
+                          '  hosts: localhost\n'
+                          '  connection: local\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Write external vars file\n'
+                          '      ansible.builtin.copy:\n'
+                          '        dest: /ansible/app_vars.yml\n'
+                          '        content: |\n'
+                          '          env_tier: production\n'
+                          '          db_port: 5432\n',
         'scenario': 'In Lesson 3.1, variables were declared inline in the playbook. In enterprise projects, variables '
                     'are separated into external YAML files (e.g., `prod_vars.yml`, `staging_vars.yml`) and included '
                     'via `vars_files:`.\n'
@@ -184,9 +195,9 @@ LEVEL3_EXERCISES = [   {   'difficulty': 'Intermediate',
                           '    - name: Write external vars file\n'
                           '      ansible.builtin.copy:\n'
                           '        dest: /ansible/app_vars.yml\n'
-                          '        content: "env_tier: production\n'
-                          'db_port: 5432\n'
-                          '"\n',
+                          '        content: |\n'
+                          '          env_tier: production\n'
+                          '          db_port: 5432\n',
         'solution_code': '---\n'
                          '- name: Load External Configuration Variables\n'
                          '  hosts: ubuntu\n'
