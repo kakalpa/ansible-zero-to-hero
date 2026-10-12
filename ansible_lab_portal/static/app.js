@@ -955,6 +955,9 @@ function setupFleetTopologyToggle() {
 
 // Two-Stage Learning Architecture (Concept Primer vs Mission Challenge)
 function setLessonStep(step) {
+  if (currentExercise && (currentExercise.is_capstone || currentExercise.capstone_type)) {
+    step = 'challenge';
+  }
   currentLessonStep = step;
   if (btnStepPrimer) btnStepPrimer.classList.toggle('active', step === 'primer');
   if (btnStepChallenge) btnStepChallenge.classList.toggle('active', step === 'challenge');
@@ -1204,8 +1207,15 @@ function renderCurriculumNav() {
       item.onclick = () => selectExercise(ex.id);
 
       const isDone = localStorage.getItem(`validated_${ex.id}`) === 'true';
-      const isBoss = ex.title.includes('MINI-BOSS');
-      if (isBoss) {
+      const isGrandCapstone = ex.capstone_type === 'grand_capstone' || ex.title.includes('GRAND CAPSTONE');
+      const isCapstone = ex.capstone_type === 'capstone' || (ex.is_capstone && !isGrandCapstone) || ex.title.includes('CAPSTONE:');
+      const isBoss = ex.capstone_type === 'mini_boss' || ex.title.includes('MINI-BOSS');
+
+      if (isGrandCapstone) {
+        item.classList.add('nav-item-grand-capstone');
+      } else if (isCapstone) {
+        item.classList.add('nav-item-capstone');
+      } else if (isBoss) {
         item.classList.add('nav-item-boss');
       }
 
@@ -1214,7 +1224,13 @@ function renderCurriculumNav() {
 
       const numSpan = document.createElement('span');
       numSpan.className = 'nav-item-num';
-      if (isBoss) {
+      if (isGrandCapstone) {
+        numSpan.style.color = '#f43f5e';
+        numSpan.style.fontWeight = '700';
+      } else if (isCapstone) {
+        numSpan.style.color = '#eab308';
+        numSpan.style.fontWeight = '700';
+      } else if (isBoss) {
         numSpan.style.color = 'var(--amber-warning)';
         numSpan.style.fontWeight = '700';
       }
@@ -1224,8 +1240,12 @@ function renderCurriculumNav() {
       const label = document.createElement('span');
       label.className = 'nav-item-title';
       let cleanTitle = ex.title.includes(':') ? ex.title.split(':')[1].trim() : ex.title;
-      if (isBoss) {
-        label.innerHTML = `<span style="color:var(--amber-warning);font-weight:700;">🚨 BOSS:</span> ${escapeHtml(cleanTitle.replace(/^MINI-BOSS:\s*/i, '').replace(/^CAPSTONE MINI-BOSS:\s*/i, ''))}`;
+      if (isGrandCapstone) {
+        label.innerHTML = `<span class="badge-grand-capstone">👑 GRAND CAPSTONE:</span> ${escapeHtml(cleanTitle.replace(/^GRAND CAPSTONE:\s*/i, ''))}`;
+      } else if (isCapstone) {
+        label.innerHTML = `<span class="badge-capstone">🏆 CAPSTONE:</span> ${escapeHtml(cleanTitle.replace(/^CAPSTONE:\s*/i, ''))}`;
+      } else if (isBoss) {
+        label.innerHTML = `<span class="badge-boss">⚔️ MINI-BOSS:</span> ${escapeHtml(cleanTitle.replace(/^MINI-BOSS:\s*/i, ''))}`;
       } else {
         label.textContent = cleanTitle;
       }
@@ -1367,11 +1387,25 @@ function selectExercise(exId) {
   renderChecklist(ex);
 
   // Render Concept Primer & set initial step based on Learning Mode
+  const isCapstone = Boolean(ex.is_capstone || ex.capstone_type);
+  const stepperNav = document.getElementById('lesson-step-nav');
+  const capstoneBanner = document.getElementById('capstone-mission-banner');
+  const btnStepPrimer = document.getElementById('btn-step-primer');
+
   renderPrimer(ex);
-  if (currentLearningMode === 'challenge') {
+  if (isCapstone) {
+    if (stepperNav) stepperNav.style.display = 'none';
+    if (capstoneBanner) capstoneBanner.style.display = 'flex';
     setLessonStep('challenge');
   } else {
-    setLessonStep('primer');
+    if (stepperNav) stepperNav.style.display = 'flex';
+    if (capstoneBanner) capstoneBanner.style.display = 'none';
+    if (btnStepPrimer) btnStepPrimer.style.display = 'inline-flex';
+    if (currentLearningMode === 'challenge') {
+      setLessonStep('challenge');
+    } else {
+      setLessonStep('primer');
+    }
   }
 
   // Guide

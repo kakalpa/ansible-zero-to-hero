@@ -51,7 +51,7 @@ MODULES = [
 EXERCISES = LEVEL1_EXERCISES + LEVEL2_EXERCISES + LEVEL3_EXERCISES + LEVEL4_EXERCISES
 
 DEFAULT_TARGET_FILES = {
-    # Level 2 (13 lessons)
+    # Level 2 (17 lessons)
     "l2-1-first-playbook": "/ansible/ping.yml",
     "l2-2-debug-module": "/ansible/debug_msg.yml",
     "l2-3-motd-banner": "/ansible/motd.yml",
@@ -59,14 +59,17 @@ DEFAULT_TARGET_FILES = {
     "l2-5-blockinfile": "/ansible/block_config.yml",
     "l2-6-directory-scaffolding": "/ansible/directories.yml",
     "l2-7-user-management": "/ansible/users.yml",
-    "l2-8-ssh-provisioning": "/ansible/ssh_keys.yml",
-    "l2-9-service-control": "/ansible/services.yml",
-    "l2-10-multi-task-play": "/ansible/app_config.yml",
-    "l2-11-permissions-hardening": "/ansible/permissions.yml",
-    "l2-12-purge-deprecated": "/ansible/vault.yml",
-    "l2-13-dry-run-check": "/ansible/compliance.yml",
-    "l2-14-host-onboarding": "/ansible/onboard_client.yml",
-    # Level 3 (12 lessons)
+    "l2-8-privilege-delegation": "/ansible/privilege_mgmt.yml",
+    "l2-9-ssh-provisioning": "/ansible/ssh_keys.yml",
+    "l2-10-software-provisioning": "/ansible/install_software.yml",
+    "l2-11-service-control": "/ansible/services.yml",
+    "l2-12-multi-task-play": "/ansible/app_config.yml",
+    "l2-13-permissions-hardening": "/ansible/permissions.yml",
+    "l2-14-purge-deprecated": "/ansible/vault.yml",
+    "l2-15-dry-run-check": "/ansible/compliance.yml",
+    "l2-16-host-onboarding": "/ansible/onboard_client.yml",
+    "l2-17-level2-capstone": "/ansible/fleet_baseline.yml",
+    # Level 3 (13 lessons)
     "l3-1-vars-section": "/ansible/vars.yml",
     "l3-2-vars-files": "/ansible/site_vars.yml",
     "l3-3-loop-lists": "/ansible/loop_lists.yml",
@@ -79,6 +82,7 @@ DEFAULT_TARGET_FILES = {
     "l3-10-reactive-when": "/ansible/reactive.yml",
     "l3-11-changed-when": "/ansible/uptime.yml",
     "l3-12-assert-validation": "/ansible/polyglot_fix.yml",
+    "l3-13-level3-capstone": "/ansible/fleet_matrix.yml",
     # Level 4 (14 lessons)
     "l4-1-handlers-notify": "/ansible/handlers.yml",
     "l4-2-flush-handlers": "/ansible/flush.yml",

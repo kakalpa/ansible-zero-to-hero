@@ -1284,5 +1284,109 @@ LEVEL3_EXERCISES = [   {   'difficulty': 'Intermediate',
                                '      ansible.builtin.command: ansible-playbook /ansible/polyglot_fix.yml\n'
                                '      register: val_res\n'
                                '      failed_when: val_res.rc != 0\n',
-        'xp': 150}]
+        'xp': 150},
+    {   'description': 'Synthesize variables, facts, loops, conditionals, package abstraction, and assertions across the polyglot fleet.',
+        'difficulty': 'Advanced',
+        'explanation': '### Level 3 Capstone: Polyglot Fleet Assurance Matrix\n\n'
+                       'In this graduation mission, you synthesize all Level 3 competencies into a single production automation pipeline: '
+                       'multi-directory scaffolding with `loop`, cross-distro package management with `package`, capturing runtime state with `register`, '
+                       'and enforcing strict infrastructure compliance with `assert`.',
+        'hints': [   {   'level': 'Hint 1: Loop directories',
+                          'text': 'file: path="{{ item }}" state=directory mode="0755"\nloop:\n  - /var/log/dataforge/audit\n  - /var/log/dataforge/metrics'},
+                     {   'level': 'Hint 2: Cross-distro package',
+                          'text': 'package: name=rsync state=present'},
+                     {   'level': 'Hint 3: Register and Assert',
+                          'text': 'command: uname -r\nchanged_when: false\nregister: kernel_info\nassert: that:\n  - kernel_info.rc == 0\n  - ansible_os_family in [\'Debian\', \'RedHat\', \'Alpine\']'}],
+        'id': 'l3-13-level3-capstone',
+        'is_capstone': True,
+        'capstone_type': 'capstone',
+        'inspect_cmd': "ansible all -m command -a 'ls -ld /var/log/dataforge/audit'",
+        'module': 'lvl3',
+        'reset_playbook': '---\n'
+                          '- name: Reset 3.13 Capstone\n'
+                          '  hosts: all\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Remove audit and metrics directories\n'
+                          '      ansible.builtin.file:\n'
+                          '        path: /var/log/dataforge\n'
+                          '        state: absent\n',
+        'scenario': '🚨 **SEVERITY 2 CAPSTONE: POLYGLOT FLEET PACKAGE & HEALTH ASSURANCE MATRIX**\n\n'
+                    'DataForge SRE telemetry reports configuration drift across Linux distributions in our 6-node cluster.\n\n'
+                    'As Senior Systems Automation Lead, author a comprehensive polyglot playbook `/ansible/fleet_matrix.yml` '
+                    'targeting `all` hosts with `gather_facts: true` that:\n\n'
+                    '1. Scaffolds `/var/log/dataforge/audit` and `/var/log/dataforge/metrics` using `ansible.builtin.file` and a `loop` (mode `0755`).\n'
+                    '2. Installs utility package `rsync` across all distros using `ansible.builtin.package: state=present`.\n'
+                    '3. Runs `uname -r` using `ansible.builtin.command` (with `changed_when: false` for idempotent read-only query) and registers output into `kernel_info`.\n'
+                    '4. Uses `ansible.builtin.assert` to verify `kernel_info.rc == 0` and `ansible_os_family in [\'Debian\', \'RedHat\', \'Alpine\']`.\n\n'
+                    'Execute `/ansible/fleet_matrix.yml` and achieve 100% verification across all 6 nodes!',
+        'solution_code': '---\n'
+                         '- name: Polyglot Fleet Assurance Matrix\n'
+                         '  hosts: all\n'
+                         '  gather_facts: true\n'
+                         '  tasks:\n'
+                         '    - name: Ensure log directories exist\n'
+                         '      ansible.builtin.file:\n'
+                         '        path: "{{ item }}"\n'
+                         '        state: directory\n'
+                         "        mode: '0755'\n"
+                         '      loop:\n'
+                         '        - /var/log/dataforge/audit\n'
+                         '        - /var/log/dataforge/metrics\n'
+                         '\n'
+                         '    - name: Ensure rsync is present across all distros\n'
+                         '      ansible.builtin.package:\n'
+                         '        name: rsync\n'
+                         '        state: present\n'
+                         '\n'
+                         '    - name: Query kernel release\n'
+                         '      ansible.builtin.command: uname -r\n'
+                         '      register: kernel_info\n'
+                         '      changed_when: false\n'
+                         '\n'
+                         '    - name: Assert fleet compliance\n'
+                         '      ansible.builtin.assert:\n'
+                         '        that:\n'
+                         '          - kernel_info.rc == 0\n'
+                         "          - ansible_os_family in ['Debian', 'RedHat', 'Alpine']\n",
+        'solution_type': 'playbook',
+        'target': 'all',
+        'target_file': '/ansible/fleet_matrix.yml',
+        'tasks': [   '1. Author /ansible/fleet_matrix.yml targeting group all with gather_facts: true.',
+                     '2. Ensure /var/log/dataforge/audit and /var/log/dataforge/metrics exist using loop.',
+                     '3. Ensure package rsync is installed across all nodes using package: state=present.',
+                     '4. Query uname -r with changed_when: false and register into kernel_info.',
+                     "5. Assert kernel_info.rc == 0 and ansible_os_family in ['Debian', 'RedHat', 'Alpine'].",
+                     '6. Execute ansible-playbook /ansible/fleet_matrix.yml and achieve 100% verification!'],
+        'title': 'Lesson 3.13: CAPSTONE: Polyglot Fleet Package & Health Assurance Matrix',
+        'validation_playbook': '---\n'
+                               '- name: Validate 3.13 Playbook Run\n'
+                               '  hosts: localhost\n'
+                               '  connection: local\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Run student playbook\n'
+                               '      ansible.builtin.command: ansible-playbook /ansible/fleet_matrix.yml\n'
+                               '      register: pb_run\n'
+                               '- name: Validate 3.13 State on Fleet\n'
+                               '  hosts: all\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Verify audit directory\n'
+                               '      ansible.builtin.stat:\n'
+                               '        path: /var/log/dataforge/audit\n'
+                               '      register: dir_chk\n'
+                               '    - name: Assert audit directory exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - dir_chk.stat.exists\n'
+                               '          - dir_chk.stat.isdir\n'
+                               '    - name: Verify rsync package availability\n'
+                               '      ansible.builtin.command: rsync --version\n'
+                               '      register: rsync_chk\n'
+                               '    - name: Assert rsync is installed\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - rsync_chk.rc == 0\n',
+        'xp': 250}]
 

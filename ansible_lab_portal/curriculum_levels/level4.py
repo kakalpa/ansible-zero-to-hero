@@ -1484,43 +1484,10 @@ LEVEL4_EXERCISES = [   {   'difficulty': 'Intermediate',
                                  'restart cron\\n    ansible.builtin.service:\\n      name: cron\\n      state: '
                                  'restarted'}],
         'id': 'l4-13-capstone-launch',
+        'is_capstone': True,
+        'capstone_type': 'capstone',
         'inspect_cmd': "ansible all -m command -a 'cat /etc/datastream.conf'",
         'module': 'lvl4',
-        'primer': {   'concept': 'The Capstone integrates all production competencies: canary batching (`serial`), '
-                                 'fact interpolation, event-driven handlers (`notify`), and transactional resilience '
-                                 '(`block / rescue`).',
-                      'demo_code': '---\n'
-                                   '- name: Production Deployment Pipeline Architecture\n'
-                                   '  hosts: <target_hosts>\n'
-                                   '  serial:\n'
-                                   '    - 2\n'
-                                   '    - "100%"\n'
-                                   '  gather_facts: true\n'
-                                   '  tasks:\n'
-                                   '    - name: Protected canary deployment\n'
-                                   '      block:\n'
-                                   '        - name: Render service configuration\n'
-                                   '          ansible.builtin.copy:\n'
-                                   '            dest: /path/to/service.conf\n'
-                                   '            content: "node={{ ansible_hostname }}\\n"\n'
-                                   '          notify: restart_service\n'
-                                   '      rescue:\n'
-                                   '        - name: Record failure audit\n'
-                                   '          ansible.builtin.copy:\n'
-                                   '            dest: /var/log/failure.log\n'
-                                   '            content: "Canary failure\\n"\n'
-                                   '\n'
-                                   '  handlers:\n'
-                                   '    - name: restart_service\n'
-                                   '      ansible.builtin.service:\n'
-                                   '        name: <service_daemon>\n'
-                                   '        state: restarted\n',
-                      'quick_tip': "Combine canary batching (serial: [2, '100%']), fact interpolation, event handlers "
-                                   '(notify), and block/rescue.',
-                      'syntax_breakdown': [   {'element': "serial: [2, '100%']", 'role': 'Canary rollout progression'},
-                                              {'element': 'block / rescue', 'role': 'Production resilience wrapper'},
-                                              {   'element': 'notify: restart cron',
-                                                  'role': 'Event-driven handler trigger'}]},
         'reset_playbook': '---\n'
                           '- name: Reset Capstone\n'
                           '  hosts: all\n'
@@ -1656,52 +1623,10 @@ LEVEL4_EXERCISES = [   {   'difficulty': 'Intermediate',
                      {   'level': 'Hint 3: Nginx on Alpine',
                          'text': 'community.general.apk: name=nginx state=present\ncopy: dest=/var/lib/nginx/html/index.html content="<h1>DataForge Edge Node Online</h1>\\n"\nservice: name=nginx state=started'}],
         'id': 'l4-14-grand-capstone',
+        'is_capstone': True,
+        'capstone_type': 'grand_capstone',
         'inspect_cmd': 'curl -s http://node7-alpine/',
         'module': 'lvl4',
-        'primer': {   'concept': 'Welcome to the **Grand Capstone Mission**! In this scenario, you step into the role of a Senior SRE '
-                                 'commissioning a completely unmanaged machine (`node7-alpine`) on the operations network.\n\n'
-                                 'You will build a full, production-grade automated onboarding lifecycle from scratch: '
-                                 'registering the host in inventory, creating an administrative user with passwordless sudo, '
-                                 'installing the Nginx web application, deploying an HTML payload, and starting the daemon.',
-                      'sample_files': [   {   'badge': '📄 Inventory Requirement',
-                                              'desc': 'Required entry in /ansible/inventory.ini:',
-                                              'path': '/ansible/inventory.ini',
-                                              'code': '[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'}],
-                      'demo_code': '---\n'
-                                   '- name: Production Client Commissioning Pipeline\n'
-                                   '  hosts: edge\n'
-                                   '  gather_facts: true\n'
-                                   '  tasks:\n'
-                                   '    - name: Create wheel group and deployer user\n'
-                                   '      ansible.builtin.user:\n'
-                                   '        name: deployer\n'
-                                   '        group: wheel\n'
-                                   '        shell: /bin/bash\n'
-                                   '        create_home: true\n'
-                                   '    - name: Configure passwordless sudo for deployer\n'
-                                   '      ansible.builtin.copy:\n'
-                                   '        dest: /etc/sudoers.d/deployer\n'
-                                   '        content: "deployer ALL=(ALL) NOPASSWD: ALL\n"\n'
-                                   "        mode: '0440'\n"
-                                   '    - name: Install Nginx web application\n'
-                                   '      community.general.apk:\n'
-                                   '        name: nginx\n'
-                                   '        state: present\n'
-                                   '    - name: Deploy production welcome page\n'
-                                   '      ansible.builtin.copy:\n'
-                                   '        dest: /var/lib/nginx/html/index.html\n'
-                                   '        content: "<h1>DataForge Edge Node Online</h1>\n"\n'
-                                   "        mode: '0644'\n"
-                                   '    - name: Start Nginx web service\n'
-                                   '      ansible.builtin.service:\n'
-                                   '        name: nginx\n'
-                                   '        state: started\n',
-                      'quick_tip': 'Alpine Nginx serves files from /var/lib/nginx/html/. Make sure /etc/sudoers.d/deployer has mode 0440.',
-                      'syntax_breakdown': [   {'element': 'ansible.builtin.user', 'role': 'Creates Unix system user with home directory and shell'},
-                                              {'element': '/etc/sudoers.d/deployer', 'role': 'Modular sudoers configuration with 0440 permission'},
-                                              {'element': 'community.general.apk', 'role': 'Alpine Linux native package manager module'},
-                                              {'element': '/var/lib/nginx/html/index.html', 'role': 'Default document root on Alpine Nginx'},
-                                              {'element': 'ansible.builtin.service', 'role': 'Controls background service lifecycle'}]},
         'reset_playbook': '---\n'
                           '- name: Reset 4.14 Inventory\n'
                           '  hosts: localhost\n'

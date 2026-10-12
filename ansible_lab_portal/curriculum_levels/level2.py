@@ -1,4 +1,4 @@
-# Level 2: Automation Blueprint — Declarative Playbooks (Lessons 2.1 to 2.13)
+"""Level 2 Curriculum: Declarative Playbooks & Configuration Management."""
 
 LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
         'explanation': '### Anatomy of an Ansible Playbook\n'
@@ -289,22 +289,30 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                        '        line: "192.168.1.10 auth.dataforge.internal"\n'
                        '        unsafe_writes: true\n'
                        '```\n'
-                       '> **💡 SRE Note (Container Bind Mounts)**: In containerized fleets (Docker/Kubernetes), `/etc/hosts` is a kernel bind mount. Ansible\'s default atomic rename fails with `[Errno 16] Device or resource busy`. Setting `unsafe_writes: true` instructs Ansible to write directly into the file.\n\n'
+                       '> **💡 SRE Note (Container Bind Mounts)**: In containerized fleets (Docker/Kubernetes), '
+                       "`/etc/hosts` is a kernel bind mount. Ansible's default atomic rename fails with `[Errno 16] "
+                       'Device or resource busy`. Setting `unsafe_writes: true` instructs Ansible to write directly '
+                       'into the file.\n'
+                       '\n'
                        'Execute with:\n'
                        '```bash\n'
                        'ansible-playbook /ansible/hosts.yml\n'
                        '```',
         'hints': [   {   'level': 'Hint 1: lineinfile syntax',
                          'text': 'tasks:\\n  - name: Add DNS entry\\n    ansible.builtin.lineinfile:\\n      path: '
-                                 '/etc/hosts\\n      line: "192.168.1.10 auth.dataforge.internal"\\n      unsafe_writes: true'},
+                                 '/etc/hosts\\n      line: "192.168.1.10 auth.dataforge.internal"\\n      '
+                                 'unsafe_writes: true'},
                      {   'level': 'Hint 2: Device or resource busy',
-                         'text': 'Because /etc/hosts is a container bind mount, include `unsafe_writes: true` under `ansible.builtin.lineinfile`.'}],
+                         'text': 'Because /etc/hosts is a container bind mount, include `unsafe_writes: true` under '
+                                 '`ansible.builtin.lineinfile`.'}],
         'id': 'l2-4-lineinfile-hosts',
         'inspect_cmd': "ansible all -m command -a 'grep auth.dataforge /etc/hosts'",
         'module': 'lvl2',
         'primer': {   'concept': 'The `ansible.builtin.lineinfile` module searches for a specific line in a text file. '
                                  'If the line is not found, it appends it. If it is found, no change is made. It can '
-                                 'also replace lines matching a regex pattern. In container fleets where files like `/etc/hosts` are bind-mounted, `unsafe_writes: true` is required to allow in-place file modification.',
+                                 'also replace lines matching a regex pattern. In container fleets where files like '
+                                 '`/etc/hosts` are bind-mounted, `unsafe_writes: true` is required to allow in-place '
+                                 'file modification.',
                       'demo_code': '---\n'
                                    '- name: Manage Single Configuration Line\n'
                                    '  hosts: <target_hosts>\n'
@@ -315,14 +323,16 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                    '        path: /path/to/config_file\n'
                                    '        line: "<exact_line_to_ensure>"\n'
                                    '        unsafe_writes: true\n',
-                      'quick_tip': "In Docker containers, /etc/hosts is a bind mount. Add 'unsafe_writes: true' so Ansible writes directly without atomic rename errors.",
+                      'quick_tip': "In Docker containers, /etc/hosts is a bind mount. Add 'unsafe_writes: true' so "
+                                   'Ansible writes directly without atomic rename errors.',
                       'syntax_breakdown': [   {   'element': 'ansible.builtin.lineinfile:',
                                                   'role': 'Module for granular single-line edits'},
                                               {'element': 'path: /etc/hosts', 'role': 'Target file to modify'},
                                               {   'element': 'line: "..."',
                                                   'role': 'Exact line to ensure is present in the file'},
                                               {   'element': 'unsafe_writes: true',
-                                                  'role': 'Enables in-place write for container bind-mounted files (/etc/hosts)'}]},
+                                                  'role': 'Enables in-place write for container bind-mounted files '
+                                                          '(/etc/hosts)'}]},
         'reset_playbook': '---\n'
                           '- name: Reset 2.4\n'
                           '  hosts: all\n'
@@ -343,7 +353,8 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                     'DataForge needs an internal DNS fallback entry added to `/etc/hosts` on all servers:\n'
                     '`192.168.1.10 auth.dataforge.internal`\n'
                     '\n'
-                    '*(Note: In container fleets where `/etc/hosts` is bind-mounted, remember to include `unsafe_writes: true`)*.\n'
+                    '*(Note: In container fleets where `/etc/hosts` is bind-mounted, remember to include '
+                    '`unsafe_writes: true`)*.\n'
                     '\n'
                     'Author `/ansible/hosts.yml` to append this line to `/etc/hosts`.',
         'solution_code': '---\n'
@@ -688,6 +699,160 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                '      failed_when: id_res.rc != 0\n',
         'xp': 100},
     {   'difficulty': 'Intermediate',
+        'explanation': '### Privilege Delegation with Groups and Sudoers\n'
+                       'Enterprise Linux security dictates least privilege and role-based administration.\n'
+                       'Instead of editing `/etc/sudoers` directly (which risks syntax errors locking out root),\n'
+                       'administrators deploy drop-in configuration files inside `/etc/sudoers.d/` with mode `0440`.\n'
+                       '\n'
+                       '```yaml\n'
+                       '---\n'
+                       '- name: Configure Privilege Delegation\n'
+                       '  hosts: ubuntu\n'
+                       '  gather_facts: false\n'
+                       '  tasks:\n'
+                       '    - name: Ensure sysops group exists\n'
+                       '      ansible.builtin.group:\n'
+                       '        name: sysops\n'
+                       '        state: present\n'
+                       '\n'
+                       '    - name: Ensure deployer user belongs to sysops group\n'
+                       '      ansible.builtin.user:\n'
+                       '        name: deployer\n'
+                       '        group: sysops\n'
+                       '        shell: /bin/bash\n'
+                       '        state: present\n'
+                       '\n'
+                       '    - name: Deploy sudoers drop-in\n'
+                       '      ansible.builtin.copy:\n'
+                       '        dest: /etc/sudoers.d/sysops\n'
+                       '        content: "%sysops ALL=(ALL) NOPASSWD: ALL\\n"\n'
+                       "        mode: '0440'\n"
+                       '```',
+        'hints': [   {   'level': 'Hint 1: group and copy syntax',
+                         'text': 'group: name=sysops state=present\n'
+                                 'user: name=deployer group=sysops shell=/bin/bash\n'
+                                 'copy: dest=/etc/sudoers.d/sysops content="%sysops ALL=(ALL) NOPASSWD: ALL\\n" '
+                                 "mode='0440'"}],
+        'id': 'l2-8-privilege-delegation',
+        'inspect_cmd': "ansible ubuntu -m command -a 'cat /etc/sudoers.d/sysops'",
+        'module': 'lvl2',
+        'primer': {   'concept': 'Privilege delegation combines three core primitives: system groups '
+                                 '(`ansible.builtin.group`), user assignment (`ansible.builtin.user`), and sudo '
+                                 'drop-ins (`/etc/sudoers.d/`). Sudoers files must strictly use octal mode `0440` '
+                                 '(read-only for root and group) for sudo to accept them.',
+                      'demo_code': '---\n'
+                                   '- name: Privilege Delegation Pipeline\n'
+                                   '  hosts: <target_hosts>\n'
+                                   '  gather_facts: false\n'
+                                   '  tasks:\n'
+                                   '    - name: Ensure administrative group exists\n'
+                                   '      ansible.builtin.group:\n'
+                                   '        name: sysops\n'
+                                   '        state: present\n'
+                                   '\n'
+                                   '    - name: Assign user to group\n'
+                                   '      ansible.builtin.user:\n'
+                                   '        name: deployer\n'
+                                   '        group: sysops\n'
+                                   '        shell: /bin/bash\n'
+                                   '        state: present\n'
+                                   '\n'
+                                   '    - name: Configure passwordless sudo drop-in\n'
+                                   '      ansible.builtin.copy:\n'
+                                   '        dest: /etc/sudoers.d/sysops\n'
+                                   '        content: "%sysops ALL=(ALL) NOPASSWD: ALL\\n"\n'
+                                   "        mode: '0440'\n",
+                      'quick_tip': 'Files inside /etc/sudoers.d/ must have mode 0440. If permissions are too '
+                                   'permissive, sudo will ignore the file entirely.',
+                      'syntax_breakdown': [   {   'element': 'ansible.builtin.group: name=sysops',
+                                                  'role': 'Manages Unix system groups'},
+                                              {   'element': 'group: sysops',
+                                                  'role': 'Assigns user primary group membership'},
+                                              {   'element': 'mode: 0440',
+                                                  'role': 'Strict read-only permissions required by sudo'}]},
+        'reset_playbook': '---\n'
+                          '- name: Reset 2.8\n'
+                          '  hosts: ubuntu\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Purge sudoers drop-in\n'
+                          '      ansible.builtin.file:\n'
+                          '        path: /etc/sudoers.d/sysops\n'
+                          '        state: absent\n'
+                          '    - name: Remove sysops group\n'
+                          '      ansible.builtin.group:\n'
+                          '        name: sysops\n'
+                          '        state: absent\n'
+                          '      ignore_errors: true\n',
+        'scenario': 'Enterprise compliance demands delegating administrative authority safely without sharing root '
+                    'passwords.\n'
+                    '\n'
+                    'Author `/ansible/privilege_mgmt.yml` targeting group `ubuntu`:\n'
+                    '1. Ensure group `sysops` exists using `ansible.builtin.group`.\n'
+                    '2. Ensure user `deployer` exists and has primary group `sysops` with shell `/bin/bash`.\n'
+                    '3. Deploy `/etc/sudoers.d/sysops` granting passwordless sudo with content `%sysops ALL=(ALL) '
+                    'NOPASSWD: ALL\\n` and mode `0440`.\n'
+                    '\n'
+                    'Execute `ansible-playbook /ansible/privilege_mgmt.yml` to verify!',
+        'solution_code': '---\n'
+                         '- name: Configure Privilege Delegation\n'
+                         '  hosts: ubuntu\n'
+                         '  gather_facts: false\n'
+                         '  tasks:\n'
+                         '    - name: Ensure sysops group exists\n'
+                         '      ansible.builtin.group:\n'
+                         '        name: sysops\n'
+                         '        state: present\n'
+                         '    - name: Ensure deployer user belongs to sysops\n'
+                         '      ansible.builtin.user:\n'
+                         '        name: deployer\n'
+                         '        group: sysops\n'
+                         '        shell: /bin/bash\n'
+                         '        state: present\n'
+                         '    - name: Deploy sudoers drop-in\n'
+                         '      ansible.builtin.copy:\n'
+                         '        dest: /etc/sudoers.d/sysops\n'
+                         '        content: "%sysops ALL=(ALL) NOPASSWD: ALL\\n"\n'
+                         "        mode: '0440'\n",
+        'solution_type': 'playbook',
+        'target': 'ubuntu',
+        'target_file': '/ansible/privilege_mgmt.yml',
+        'tasks': [   '1. Author /ansible/privilege_mgmt.yml targeting group ubuntu.',
+                     '2. Ensure group sysops exists using ansible.builtin.group.',
+                     '3. Ensure user deployer belongs to group sysops with shell /bin/bash.',
+                     '4. Deploy /etc/sudoers.d/sysops with mode 0440.',
+                     '5. Execute ansible-playbook /ansible/privilege_mgmt.yml.'],
+        'title': 'Lesson 2.8: Privilege Delegation — System Groups (group) & Sudoers (/etc/sudoers.d/)',
+        'validation_playbook': '---\n'
+                               '- name: Validate 2.8\n'
+                               '  hosts: ubuntu\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Check group sysops\n'
+                               '      ansible.builtin.command: getent group sysops\n'
+                               '      register: grp_chk\n'
+                               '    - name: Assert group exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'sysops\' in grp_chk.stdout"\n'
+                               '    - name: Check deployer membership\n'
+                               '      ansible.builtin.command: id deployer\n'
+                               '      register: usr_chk\n'
+                               '    - name: Assert user in group\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'sysops\' in usr_chk.stdout"\n'
+                               '    - name: Check sudoers drop-in\n'
+                               '      ansible.builtin.stat:\n'
+                               '        path: /etc/sudoers.d/sysops\n'
+                               '      register: sud_st\n'
+                               '    - name: Assert sudoers exists with 0440 mode\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - sud_st.stat.exists\n'
+                               '          - sud_st.stat.mode == "0440"\n',
+        'xp': 100},
+    {   'difficulty': 'Intermediate',
         'explanation': '### Provisioning SSH Keys Declaratively\n'
                        '```yaml\n'
                        '---\n'
@@ -710,7 +875,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                          'text': 'ansible.builtin.authorized_key:\\n  user: deployer\\n  state: present\\n  key: '
                                  '"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICl1467Hl0GvDataForgeDeployerKey2026 '
                                  'deployer@dataforge"'}],
-        'id': 'l2-8-ssh-provisioning',
+        'id': 'l2-9-ssh-provisioning',
         'inspect_cmd': "ansible all -m command -a 'cat /home/deployer/.ssh/authorized_keys'",
         'module': 'lvl2',
         'primer': {   'concept': 'The `ansible.builtin.authorized_key` module manages SSH public keys in target user '
@@ -771,7 +936,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      "2. Use ansible.builtin.authorized_key for user 'deployer'.",
                      '3. Set key to the specified ed25519 string.',
                      '4. Run ansible-playbook /ansible/ssh_keys.yml.'],
-        'title': 'Lesson 2.8: SSH Key Provisioning — The authorized_key Module',
+        'title': 'Lesson 2.9: SSH Key Provisioning — The authorized_key Module',
         'validation_playbook': '---\n'
                                '- name: Validate 2.8\n'
                                '  hosts: all\n'
@@ -782,6 +947,106 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                '/home/deployer/.ssh/authorized_keys\n'
                                '      register: k_res\n'
                                '      failed_when: k_res.rc != 0\n',
+        'xp': 100},
+    {   'difficulty': 'Intermediate',
+        'explanation': '### Declarative Package Management: Installing Software\n'
+                       'Ansible package management is declarative: you describe what software should be present on the '
+                       'target node.\n'
+                       'The `ansible.builtin.package` module abstracts underlying Linux package managers (`apt`, '
+                       '`dnf`, `apk`).\n'
+                       '\n'
+                       'When `state: present` is specified:\n'
+                       '- If the software is **absent**, Ansible invokes the OS package manager to install it '
+                       '(`changed`).\n'
+                       '- If the software is **already installed**, Ansible skips installation (`ok`), guaranteeing '
+                       'idempotency.\n'
+                       '\n'
+                       '```yaml\n'
+                       '---\n'
+                       '- name: Software Provisioning Pipeline\n'
+                       '  hosts: all\n'
+                       '  gather_facts: false\n'
+                       '  tasks:\n'
+                       '    - name: Ensure tree utility is installed if absent\n'
+                       '      ansible.builtin.package:\n'
+                       '        name: tree\n'
+                       '        state: present\n'
+                       '```',
+        'hints': [   {   'level': 'Hint 1: package module syntax',
+                         'text': 'ansible.builtin.package:\\n  name: tree\\n  state: present'}],
+        'id': 'l2-10-software-provisioning',
+        'inspect_cmd': "ansible all -m command -a 'tree --version'",
+        'module': 'lvl2',
+        'primer': {   'concept': 'Declarative package management focuses on desired state rather than commands. With '
+                                 '`ansible.builtin.package: state=present`, Ansible inspects whether the software is '
+                                 'absent. If absent, it installs it; if already present, it does nothing (`ok`). Use '
+                                 '`state: absent` to purge software.',
+                      'demo_code': '---\n'
+                                   '- name: Ensure Software Is Present\n'
+                                   '  hosts: <target_hosts>\n'
+                                   '  gather_facts: false\n'
+                                   '  tasks:\n'
+                                   '    - name: Install software if absent\n'
+                                   '      ansible.builtin.package:\n'
+                                   '        name: <package_name>\n'
+                                   '        state: present\n',
+                      'quick_tip': 'state: present installs software only if it is currently absent, making runs 100% '
+                                   'idempotent.',
+                      'syntax_breakdown': [   {   'element': 'ansible.builtin.package:',
+                                                  'role': 'Generic package management module for any Linux '
+                                                          'distribution'},
+                                              {'element': 'name: tree', 'role': 'Name of package to install'},
+                                              {   'element': 'state: present',
+                                                  'role': 'Installs package if absent; leaves unchanged if already '
+                                                          'installed'}]},
+        'reset_playbook': '---\n'
+                          '- name: Reset 2.10\n'
+                          '  hosts: all\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Purge tree package for fresh test\n'
+                          '      ansible.builtin.package:\n'
+                          '        name: tree\n'
+                          '        state: absent\n',
+        'scenario': 'In production operations, systems administrators must ensure core diagnostics tools are available '
+                    'fleet-wide.\n'
+                    '\n'
+                    'Author `/ansible/install_software.yml` targeting `all`:\n'
+                    '1. Use the `ansible.builtin.package` module.\n'
+                    '2. Ensure the package `tree` is installed (`state: present`).\n'
+                    '3. Execute the playbook: notice the task reports `changed` when installing on nodes where it was '
+                    'absent, and running a second time reports `ok` (idempotent)!\n'
+                    '\n'
+                    'Execute `ansible-playbook /ansible/install_software.yml` across all nodes!',
+        'solution_code': '---\n'
+                         '- name: Software Provisioning Pipeline\n'
+                         '  hosts: all\n'
+                         '  gather_facts: false\n'
+                         '  tasks:\n'
+                         '    - name: Ensure tree utility is installed if absent\n'
+                         '      ansible.builtin.package:\n'
+                         '        name: tree\n'
+                         '        state: present\n',
+        'solution_type': 'playbook',
+        'target': 'all',
+        'target_file': '/ansible/install_software.yml',
+        'tasks': [   '1. Author /ansible/install_software.yml targeting group all.',
+                     '2. Use ansible.builtin.package module.',
+                     "3. Ensure package 'tree' is in state 'present'.",
+                     '4. Execute ansible-playbook /ansible/install_software.yml.'],
+        'title': 'Lesson 2.10: Software Provisioning — Declarative Package Management (package)',
+        'validation_playbook': '---\n'
+                               '- name: Validate 2.10\n'
+                               '  hosts: all\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Verify tree binary exists\n'
+                               '      ansible.builtin.command: tree --version\n'
+                               '      register: bin_chk\n'
+                               '    - name: Assert tree is installed\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - bin_chk.rc == 0\n',
         'xp': 100},
     {   'difficulty': 'Intermediate',
         'explanation': '### Controlling Daemons with `service`\n'
@@ -804,7 +1069,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
         'hints': [   {   'level': 'Hint 1: service module syntax',
                          'text': 'tasks:\\n  - name: Ensure cron is running\\n    ansible.builtin.service:\\n      '
                                  'name: cron\\n      state: started\\n      enabled: true'}],
-        'id': 'l2-9-service-control',
+        'id': 'l2-11-service-control',
         'inspect_cmd': "ansible debian -m command -a 'service cron status'",
         'module': 'lvl2',
         'primer': {   'concept': 'The `ansible.builtin.service` module controls system services across multiple init '
@@ -864,7 +1129,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      "2. Use ansible.builtin.service module for service 'cron'.",
                      "3. Ensure state is 'started' and enabled is true.",
                      '4. Execute ansible-playbook /ansible/services.yml.'],
-        'title': 'Lesson 2.9: Service Lifecycle — Managing Daemons with service',
+        'title': 'Lesson 2.11: Service Lifecycle — Managing Daemons with service',
         'validation_playbook': '---\n'
                                '- name: Validate 2.9\n'
                                '  hosts: debian\n'
@@ -905,7 +1170,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                          'text': 'Place tasks in top-to-bottom order:\\n  tasks:\\n    - name: Create dir\\n      '
                                  'ansible.builtin.file: ...\\n    - name: Create file\\n      ansible.builtin.copy: '
                                  '...'}],
-        'id': 'l2-10-multi-task-play',
+        'id': 'l2-12-multi-task-play',
         'inspect_cmd': "ansible all -m command -a 'cat /etc/dataforge/agent.conf'",
         'module': 'lvl2',
         'primer': {   'concept': 'Ansible plays execute tasks sequentially in exact top-to-bottom order across all '
@@ -976,7 +1241,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      "2. Define Task 1 creating directory /etc/dataforge with mode '0755'.",
                      "3. Define Task 2 creating /etc/dataforge/agent.conf with mode '0644'.",
                      '4. Verify task dependency order and run ansible-playbook /ansible/app_config.yml.'],
-        'title': 'Lesson 2.10: Orchestration Flow — Multi-Task Plays with Dependencies',
+        'title': 'Lesson 2.12: Orchestration Flow — Multi-Task Plays with Dependencies',
         'validation_playbook': '---\n'
                                '- name: Validate 2.10\n'
                                '  hosts: all\n'
@@ -1013,7 +1278,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
         'hints': [   {   'level': 'Hint 1: Permissions hardening',
                          'text': 'ansible.builtin.file:\\n  path: /etc/dataforge/agent.conf\\n  owner: root\\n  group: '
                                  "root\\n  mode: '0600'"}],
-        'id': 'l2-11-permissions-hardening',
+        'id': 'l2-13-permissions-hardening',
         'inspect_cmd': 'ansible all -m command -a \'stat -c "%a %U:%G" /etc/dataforge/agent.conf\'',
         'module': 'lvl2',
         'primer': {   'concept': 'The `ansible.builtin.file` module without `state: directory` or `state: touch` '
@@ -1072,7 +1337,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      '2. Use ansible.builtin.file targeting path /etc/dataforge/agent.conf.',
                      "3. Enforce owner: root, group: root, and mode: '0600'.",
                      '4. Run ansible-playbook /ansible/permissions.yml.'],
-        'title': 'Lesson 2.11: Security Compliance — Hardening Permissions & Ownership',
+        'title': 'Lesson 2.13: Security Compliance — Hardening Permissions & Ownership',
         'validation_playbook': '---\n'
                                '- name: Validate 2.11\n'
                                '  hosts: all\n'
@@ -1106,7 +1371,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                        '```',
         'hints': [   {   'level': 'Hint 1: state absent',
                          'text': 'ansible.builtin.file:\\n  path: /tmp/legacy_token.key\\n  state: absent'}],
-        'id': 'l2-12-purge-deprecated',
+        'id': 'l2-14-purge-deprecated',
         'inspect_cmd': 'ansible all -m command -a \'ls /tmp/legacy_token.key 2>/dev/null || echo "Clean"\'',
         'module': 'lvl2',
         'primer': {   'concept': "The `state: absent` parameter is Ansible's idempotent cleanup mechanism. If the "
@@ -1167,7 +1432,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      '2. Use ansible.builtin.file with path /tmp/legacy_token.key.',
                      '3. Set state: absent to guarantee file deletion.',
                      '4. Run ansible-playbook /ansible/vault.yml.'],
-        'title': 'Lesson 2.12: Asset Hygiene — Purging Deprecated Files with state: absent',
+        'title': 'Lesson 2.14: Asset Hygiene — Purging Deprecated Files with state: absent',
         'validation_playbook': '---\n'
                                '- name: Validate 2.12\n'
                                '  hosts: all\n'
@@ -1207,7 +1472,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                        '```',
         'hints': [   {   'level': 'Hint 1: Check mode syntax',
                          'text': 'Run `ansible-playbook /ansible/compliance.yml --check --diff` in the terminal.'}],
-        'id': 'l2-13-dry-run-check',
+        'id': 'l2-15-dry-run-check',
         'inspect_cmd': "ansible all -m command -a 'cat /etc/security_audit'",
         'module': 'lvl2',
         'primer': {   'concept': 'Check mode (`--check`) simulates execution by asking each module whether it would '
@@ -1271,7 +1536,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
         'tasks': [   "1. Author /ansible/compliance.yml ensuring /etc/security_audit contains 'compliance_level=gold'.",
                      '2. Run with --check --diff to preview changes in dry-run mode.',
                      '3. Execute without --check to apply changes across all nodes.'],
-        'title': 'Lesson 2.13: Dry-Run Mode — Testing Playbooks with --check & --diff',
+        'title': 'Lesson 2.15: Dry-Run Mode — Testing Playbooks with --check & --diff',
         'validation_playbook': '---\n'
                                '- name: Validate 2.13\n'
                                '  hosts: all\n'
@@ -1313,21 +1578,25 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                        'ansible-playbook /ansible/onboard_client.yml\n'
                        '```',
         'hints': [   {   'level': 'Hint 1: inventory.ini entry',
-                         'text': 'Add this to /ansible/inventory.ini:\n[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3'},
+                         'text': 'Add this to /ansible/inventory.ini:\n'
+                                 '[edge]\n'
+                                 'node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3'},
                      {   'level': 'Hint 2: Playbook syntax',
-                         'text': 'hosts: edge\ntasks:\n  - name: Install curl\n    community.general.apk:\n      name: curl\n      state: present'}],
-        'id': 'l2-14-host-onboarding',
+                         'text': 'hosts: edge\n'
+                                 'tasks:\n'
+                                 '  - name: Install curl\n'
+                                 '    community.general.apk:\n'
+                                 '      name: curl\n'
+                                 '      state: present'}],
+        'id': 'l2-16-host-onboarding',
         'inspect_cmd': 'ansible edge -m ping',
         'module': 'lvl2',
-        'primer': {   'concept': 'Ansible is agentless — it can only manage systems that are registered in an **inventory**. '
-                                 'When a new server powers on (`node7-alpine`), you must declare it in `/ansible/inventory.ini` '
-                                 'under a group before Ansible commands can reach it.\n\n'
-                                 'Once enrolled, you test discovery with `ansible <group> -m ping` and run an onboarding '
-                                 'playbook to bootstrap packages and configuration.',
-                      'sample_files': [   {   'badge': '📄 Inventory Entry',
-                                              'desc': 'Required entry to add at the bottom of /ansible/inventory.ini:',
-                                              'path': '/ansible/inventory.ini',
-                                              'code': '[edge]\nnode7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3\n'}],
+        'primer': {   'concept': 'Ansible is agentless — it can only manage systems that are registered in an '
+                                 '**inventory**. When a new server powers on (`node7-alpine`), you must declare it in '
+                                 '`/ansible/inventory.ini` under a group before Ansible commands can reach it.\n'
+                                 '\n'
+                                 'Once enrolled, you test discovery with `ansible <group> -m ping` and run an '
+                                 'onboarding playbook to bootstrap packages and configuration.',
                       'demo_code': '---\n'
                                    '- name: Onboard Edge Client\n'
                                    '  hosts: edge\n'
@@ -1337,11 +1606,22 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                    '      community.general.apk:\n'
                                    '        name: curl\n'
                                    '        state: present\n',
-                      'quick_tip': "Add '[edge]' with 'node7-alpine' to /ansible/inventory.ini first. Then run 'ansible edge -m ping' before running your playbook.",
-                      'syntax_breakdown': [   {'element': '[edge]', 'role': 'New group heading defined in inventory.ini'},
-                                              {'element': 'ansible_host=node7-alpine', 'role': 'Target client hostname on Docker network'},
-                                              {'element': 'ansible_python_interpreter=/usr/bin/python3', 'role': 'Explicit Python binary path for Alpine'},
-                                              {'element': 'hosts: edge', 'role': 'Playbook target restricted to the newly onboarded group'}]},
+                      'quick_tip': "Add '[edge]' with 'node7-alpine' to /ansible/inventory.ini first. Then run "
+                                   "'ansible edge -m ping' before running your playbook.",
+                      'sample_files': [   {   'badge': '📄 Inventory Entry',
+                                              'code': '[edge]\n'
+                                                      'node7-alpine ansible_host=node7-alpine '
+                                                      'ansible_python_interpreter=/usr/bin/python3\n',
+                                              'desc': 'Required entry to add at the bottom of /ansible/inventory.ini:',
+                                              'path': '/ansible/inventory.ini'}],
+                      'syntax_breakdown': [   {   'element': '[edge]',
+                                                  'role': 'New group heading defined in inventory.ini'},
+                                              {   'element': 'ansible_host=node7-alpine',
+                                                  'role': 'Target client hostname on Docker network'},
+                                              {   'element': 'ansible_python_interpreter=/usr/bin/python3',
+                                                  'role': 'Explicit Python binary path for Alpine'},
+                                              {   'element': 'hosts: edge',
+                                                  'role': 'Playbook target restricted to the newly onboarded group'}]},
         'reset_playbook': '---\n'
                           '- name: Reset 2.14 Inventory\n'
                           '  hosts: localhost\n'
@@ -1364,13 +1644,18 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                           '        name: curl\n'
                           '        state: absent\n'
                           '      ignore_errors: true\n',
-        'scenario': 'DataForge has provisioned a brand-new Alpine edge client on the operations network: `node7-alpine`.\n\n'
-                    'Although `node7-alpine` is powered on, it is currently **unmanaged** because it is not listed in your inventory.\n\n'
+        'scenario': 'DataForge has provisioned a brand-new Alpine edge client on the operations network: '
+                    '`node7-alpine`.\n'
+                    '\n'
+                    'Although `node7-alpine` is powered on, it is currently **unmanaged** because it is not listed in '
+                    'your inventory.\n'
+                    '\n'
                     'Your assignment:\n'
                     '> *"1. Open `/ansible/inventory.ini` and append a new group `[edge]` containing:*\n'
                     '> *   `node7-alpine ansible_host=node7-alpine ansible_python_interpreter=/usr/bin/python3`*\n'
                     '> *2. Test discovery: `ansible edge -m ping`*\n'
-                    '> *3. Author `/ansible/onboard_client.yml` targeting group `edge` to install `curl` using `community.general.apk`.*\n'
+                    '> *3. Author `/ansible/onboard_client.yml` targeting group `edge` to install `curl` using '
+                    '`community.general.apk`.*\n'
                     '> *4. Execute `ansible-playbook /ansible/onboard_client.yml`."*',
         'solution_code': '---\n'
                          '- name: Onboard Edge Client\n'
@@ -1389,7 +1674,7 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                      '3. Author /ansible/onboard_client.yml targeting group edge.',
                      '4. Ensure package curl is installed on the edge client.',
                      '5. Execute ansible-playbook /ansible/onboard_client.yml.'],
-        'title': 'Lesson 2.14: Host Onboarding — Enrolling a Client into Inventory & Bootstrapping SSH Trust',
+        'title': 'Lesson 2.16: Host Onboarding — Enrolling a Client into Inventory & Bootstrapping SSH Trust',
         'validation_playbook': '---\n'
                                '- name: Validate 2.14 Inventory\n'
                                '  hosts: localhost\n'
@@ -1415,6 +1700,144 @@ LEVEL2_EXERCISES = [   {   'difficulty': 'Beginner',
                                '    - name: Assert curl exists\n'
                                '      ansible.builtin.assert:\n'
                                '        that:\n'
-                               '          - "\'/usr/bin/curl\' in curl_check.stdout or \'curl\' in curl_check.stdout"\n',
-        'xp': 150}]
-
+                               '          - "\'/usr/bin/curl\' in curl_check.stdout or \'curl\' in '
+                               'curl_check.stdout"\n',
+        'xp': 150},
+    {   'capstone_type': 'capstone',
+        'description': 'Synthesize users, groups, sudoers, files, packages, and deprecation purging across the fleet.',
+        'difficulty': 'Advanced',
+        'explanation': '### Level 2 Capstone: Fleet Baseline Hardening & Provisioning\n'
+                       '\n'
+                       'In this graduation mission, you synthesize all Level 2 declarative playbook competencies into '
+                       'a unified baseline hardening playbook without any hints or skeletons.',
+        'hints': [   {   'level': 'Hint 1: Tasks breakdown',
+                         'text': '1. group: name=sysops state=present\n'
+                                 '2. user: name=deployer group=sysops shell=/bin/bash\n'
+                                 '3. copy: dest=/etc/sudoers.d/deployer content="deployer ALL=(ALL) NOPASSWD: ALL\\n" '
+                                 "mode='0440'\n"
+                                 '4. copy: dest=/etc/motd content="DataForge Enterprise Node - Hardened\\n"\n'
+                                 '5. package: name=tree state=present\n'
+                                 '6. file: path=/tmp/legacy_init.marker state=absent'}],
+        'id': 'l2-17-level2-capstone',
+        'inspect_cmd': "ansible all -m command -a 'cat /etc/motd'",
+        'is_capstone': True,
+        'module': 'lvl2',
+        'reset_playbook': '---\n'
+                          '- name: Reset 2.17 Capstone\n'
+                          '  hosts: all\n'
+                          '  gather_facts: false\n'
+                          '  tasks:\n'
+                          '    - name: Remove sudoers drop-in\n'
+                          '      ansible.builtin.file:\n'
+                          '        path: /etc/sudoers.d/deployer\n'
+                          '        state: absent\n'
+                          '    - name: Seed legacy marker to test purging\n'
+                          '      ansible.builtin.file:\n'
+                          '        path: /tmp/legacy_init.marker\n'
+                          '        state: touch\n',
+        'scenario': '🚨 **SEVERITY 2 CAPSTONE: FLEET BASELINE HARDENING & USER PROVISIONING**\n'
+                    '\n'
+                    'As Systems Operations Lead, you are tasked with authoring `/ansible/fleet_baseline.yml` targeting '
+                    '`all` hosts to establish our golden baseline:\n'
+                    '\n'
+                    '1. Ensure system group `sysops` exists (`state: present`).\n'
+                    '2. Ensure administrative user `deployer` exists with primary group `sysops` and shell '
+                    '`/bin/bash`.\n'
+                    '3. Deploy sudoers drop-in `/etc/sudoers.d/deployer` granting passwordless sudo with content '
+                    '`deployer ALL=(ALL) NOPASSWD: ALL\\n` and mode `0440`.\n'
+                    '4. Deploy standard MOTD banner `/etc/motd` with content `DataForge Enterprise Node - '
+                    'Hardened\\n`.\n'
+                    '5. Ensure utility package `tree` is installed across all hosts (`state: present`).\n'
+                    '6. Purge deprecated legacy marker file `/tmp/legacy_init.marker` (`state: absent`).\n'
+                    '\n'
+                    'Execute `/ansible/fleet_baseline.yml` and achieve 100% verification across all 6 cluster nodes!',
+        'solution_code': '---\n'
+                         '- name: Fleet Baseline Hardening & Provisioning\n'
+                         '  hosts: all\n'
+                         '  gather_facts: false\n'
+                         '  tasks:\n'
+                         '    - name: Ensure sysops group exists\n'
+                         '      ansible.builtin.group:\n'
+                         '        name: sysops\n'
+                         '        state: present\n'
+                         '    - name: Ensure deployer user exists in sysops group\n'
+                         '      ansible.builtin.user:\n'
+                         '        name: deployer\n'
+                         '        group: sysops\n'
+                         '        shell: /bin/bash\n'
+                         '        state: present\n'
+                         '    - name: Deploy sudoers drop-in\n'
+                         '      ansible.builtin.copy:\n'
+                         '        dest: /etc/sudoers.d/deployer\n'
+                         '        content: "deployer ALL=(ALL) NOPASSWD: ALL\\n"\n'
+                         "        mode: '0440'\n"
+                         '    - name: Deploy hardened MOTD banner\n'
+                         '      ansible.builtin.copy:\n'
+                         '        dest: /etc/motd\n'
+                         '        content: "DataForge Enterprise Node - Hardened\\n"\n'
+                         "        mode: '0644'\n"
+                         '    - name: Ensure tree package is installed\n'
+                         '      ansible.builtin.package:\n'
+                         '        name: tree\n'
+                         '        state: present\n'
+                         '    - name: Purge legacy marker\n'
+                         '      ansible.builtin.file:\n'
+                         '        path: /tmp/legacy_init.marker\n'
+                         '        state: absent\n',
+        'solution_type': 'playbook',
+        'target': 'all',
+        'target_file': '/ansible/fleet_baseline.yml',
+        'tasks': [   '1. Author /ansible/fleet_baseline.yml targeting all hosts.',
+                     '2. Ensure group sysops exists.',
+                     '3. Ensure user deployer belongs to group sysops.',
+                     '4. Deploy /etc/sudoers.d/deployer with mode 0440.',
+                     '5. Deploy /etc/motd with hardened banner.',
+                     '6. Ensure package tree is present.',
+                     '7. Purge /tmp/legacy_init.marker (state: absent).',
+                     '8. Execute ansible-playbook /ansible/fleet_baseline.yml and achieve 100% verification!'],
+        'title': 'Lesson 2.17: CAPSTONE: Fleet Hardening & Baseline User Provisioning',
+        'validation_playbook': '---\n'
+                               '- name: Validate 2.17 Playbook Run\n'
+                               '  hosts: localhost\n'
+                               '  connection: local\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Run baseline playbook\n'
+                               '      ansible.builtin.command: ansible-playbook /ansible/fleet_baseline.yml\n'
+                               '      register: pb_run\n'
+                               '- name: Validate 2.17 Fleet State\n'
+                               '  hosts: all\n'
+                               '  gather_facts: false\n'
+                               '  tasks:\n'
+                               '    - name: Check deployer user\n'
+                               '      ansible.builtin.command: id deployer\n'
+                               '      register: usr_chk\n'
+                               '    - name: Assert deployer exists\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - usr_chk.rc == 0\n'
+                               '    - name: Check sudoers file\n'
+                               '      ansible.builtin.stat:\n'
+                               '        path: /etc/sudoers.d/deployer\n'
+                               '      register: sud_st\n'
+                               '    - name: Assert sudoers 0440\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - sud_st.stat.exists\n'
+                               '          - sud_st.stat.mode == "0440"\n'
+                               '    - name: Check motd\n'
+                               '      ansible.builtin.command: cat /etc/motd\n'
+                               '      register: motd_chk\n'
+                               '    - name: Assert motd content\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - "\'Hardened\' in motd_chk.stdout"\n'
+                               '    - name: Check legacy marker absent\n'
+                               '      ansible.builtin.stat:\n'
+                               '        path: /tmp/legacy_init.marker\n'
+                               '      register: leg_st\n'
+                               '    - name: Assert legacy marker absent\n'
+                               '      ansible.builtin.assert:\n'
+                               '        that:\n'
+                               '          - not leg_st.stat.exists\n',
+        'xp': 200}]

@@ -687,26 +687,11 @@ LEVEL1_EXERCISES = [   {   'difficulty': 'Beginner',
                                  '2) `ansible debian -m copy -a "content=\'DataForge Fleet Node\' dest=/etc/motd"`\n'
                                  '3) `ansible rhel -m shell -a "pkill sleep || true"`'}],
         'id': 'l1-11-fleet-cleanup',
+        'is_capstone': True,
+        'capstone_type': 'mini_boss',
         'inspect_cmd': "ansible all -m shell -a 'ls -l /tmp/.malware_beacon 2>/dev/null; cat /etc/motd 2>/dev/null; "
                        "pgrep -x sleep || true' || true",
         'module': 'lvl1',
-        'primer': {   'concept': 'SRE incident response demands chaining ad-hoc tools under pressure. In this '
-                                 'challenge, apply group targeting (`alpine`, `debian`, `rhel`), removal (`file: '
-                                 'state=absent`), content restoration (`copy: content=...`), and process termination '
-                                 '(`shell: pkill ...`).',
-                      'demo_code': '# Triage Blueprint Template:\n'
-                                   'ansible <group1> -m file -a "path=<bad_file> state=absent"\n'
-                                   'ansible <group2> -m copy -a "content=\'<authorized_text>\\n\' dest=/path/to/file"\n'
-                                   'ansible <group3> -m shell -a "pkill <process_name> || true"',
-                      'quick_tip': 'Execute one ad-hoc remediation per target slice and inspect the output status '
-                                   'colors (yellow = changed, green = success).',
-                      'syntax_breakdown': [   {   'element': 'ansible <group>',
-                                                  'role': 'Target exact server slice (alpine, debian, rhel)'},
-                                              {'element': 'state=absent', 'role': 'Idempotent file deletion'},
-                                              {   'element': 'copy: content=...',
-                                                  'role': 'Instant file recreation with authorized payload'},
-                                              {   'element': 'shell: pkill ...',
-                                                  'role': 'Emergency process termination with || true fallback'}]},
         'reset_playbook': '---\n'
                           '- name: Reset Incident 1042\n'
                           '  hosts: all\n'
